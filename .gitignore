@@ -31,6 +31,9 @@ android/
 *.log
 *.jsbundle
 
+# Watchman writes transient cookie files that vanish mid-command
+.watchman-cookie-*
+
 # Testing
 coverage/
 .nyc_output/

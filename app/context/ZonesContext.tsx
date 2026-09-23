@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DisasterZone } from '@constants/zones';
 import { startZonesSync, alertToZone } from '@utils/zonesSync';
-import { cacheZones, getCachedZones } from '@utils/zoneCache';
+import { cacheZones, readCachedZones } from '@utils/zoneCache';
 import { refreshGeofences } from '@tasks/backgroundLocationTask';
+
+/** Where the currently displayed zones came from. */
+export type ZonesSource = 'firestore' | 'cache' | 'bundled';
 
 export interface ZonesContextValue {
   zones: DisasterZone[];
   isLoading: boolean;
   /** False once the listener errors — the UI is then showing cached data. */
   isLive: boolean;
+  source: ZonesSource;
   error: Error | null;
 }
 
@@ -16,6 +20,7 @@ const ZonesContext = createContext<ZonesContextValue>({
   zones: [],
   isLoading: true,
   isLive: false,
+  source: 'bundled',
   error: null,
 });
 
@@ -23,6 +28,7 @@ export function ZonesProvider({ children }: { children: React.ReactNode }) {
   const [zones, setZones] = useState<DisasterZone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
+  const [source, setSource] = useState<ZonesSource>('bundled');
   const [error, setError] = useState<Error | null>(null);
   const hydratedRef = useRef(false);
 
@@ -32,9 +38,10 @@ export function ZonesProvider({ children }: { children: React.ReactNode }) {
     // Paint from cache first so the UI is populated before the network settles,
     // and stays populated when there is no network at all.
     (async () => {
-      const cached = await getCachedZones();
+      const { zones: cached, isFallback } = await readCachedZones();
       if (cancelled || hydratedRef.current) return;
       setZones(cached);
+      setSource(isFallback ? 'bundled' : 'cache');
       setIsLoading(false);
     })();
 
@@ -45,6 +52,7 @@ export function ZonesProvider({ children }: { children: React.ReactNode }) {
 
         const nextZones = alerts.map(alertToZone);
         setZones(nextZones);
+        setSource('firestore');
         setIsLive(true);
         setError(null);
         setIsLoading(false);
@@ -71,8 +79,8 @@ export function ZonesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ zones, isLoading, isLive, error }),
-    [zones, isLoading, isLive, error]
+    () => ({ zones, isLoading, isLive, source, error }),
+    [zones, isLoading, isLive, source, error]
   );
 
   return <ZonesContext.Provider value={value}>{children}</ZonesContext.Provider>;

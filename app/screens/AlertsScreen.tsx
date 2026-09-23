@@ -15,7 +15,7 @@ import { presentZoneAlert } from '@utils/localAlerts';
 import { requestNotificationPermissions } from '@utils/fcmSetup';
 
 export const AlertsScreen: React.FC = () => {
-  const { zones, isLive, isLoading } = useZones();
+  const { zones, source, isLoading } = useZones();
   const [testStatus, setTestStatus] = useState<string | null>(null);
 
   const handleTestAlert = async () => {
@@ -168,9 +168,11 @@ export const AlertsScreen: React.FC = () => {
           <Text style={styles.subtitle}>
             {isLoading
               ? 'Loading active alerts…'
-              : isLive
+              : source === 'firestore'
                 ? 'Live from the national alert feed'
-                : 'Offline — showing cached alerts'}
+                : source === 'cache'
+                  ? 'Offline — showing last synced alerts'
+                  : 'Offline — showing default zones'}
           </Text>
         </View>
 

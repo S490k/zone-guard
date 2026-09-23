@@ -9,14 +9,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { useLocationMonitor } from '@hooks/useLocationMonitor';
-import { useZones } from '@context/ZonesContext';
+import { useZones, ZonesSource } from '@context/ZonesContext';
 import { SEVERITY_COLORS } from '@constants/zones';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { StressIndicator } from '@components/StressIndicator';
 import { GeofenceMap } from '@components/GeofenceMap';
 
+const SOURCE_LABEL: Record<ZonesSource, string> = {
+  firestore: 'live',
+  cache: 'offline, last synced',
+  bundled: 'offline, default zones',
+};
+
 export const HomeScreen: React.FC = () => {
-  const { zones, isLive, isLoading } = useZones();
+  const { zones, source, isLoading } = useZones();
   const { location, activeZones, error } = useLocationMonitor(zones);
   const [preparednessScore, setPreparednessScore] = useState(45);
 
@@ -171,8 +177,7 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.zoneDistance}>
             {isLoading
               ? 'Loading zones…'
-              : `${zones.length} zone${zones.length === 1 ? '' : 's'} monitored` +
-                (isLive ? '' : ' · offline, using cached data')}
+              : `${zones.length} zone${zones.length === 1 ? '' : 's'} monitored · ${SOURCE_LABEL[source]}`}
           </Text>
 
           {rankedZones.length === 0 ? (
