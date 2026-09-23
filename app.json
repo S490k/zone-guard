@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "ZoneGuard",
+    "slug": "zoneguard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0E27"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.zoneguard.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": ["location", "fetch", "remote-notification"],
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ZoneGuard uses your location in the background to warn you when you enter a disaster risk zone.",
+        "NSLocationWhenInUseUsageDescription": "ZoneGuard uses your location to show nearby disaster risk zones."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0E27"
+      },
+      "package": "com.zoneguard.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ZoneGuard uses your location in the background to warn you when you enter a disaster risk zone.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#00D4FF"
+        }
+      ]
+    ]
+  }
+}

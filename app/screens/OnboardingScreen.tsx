@@ -1,0 +1,201 @@
+import React, { useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS } from '@constants/colors';
+import theme from '@theme/colors';
+
+const { width } = Dimensions.get('window');
+
+interface OnboardingStep {
+  title: string;
+  description: string;
+  emoji: string;
+}
+
+const ONBOARDING_STEPS: OnboardingStep[] = [
+  {
+    title: 'Welcome to ZoneGuard',
+    description:
+      'Your personal disaster preparedness companion for Pakistan. Stay safe, stay prepared.',
+    emoji: '🛡️',
+  },
+  {
+    title: 'Real-time Alerts',
+    description:
+      'Receive instant notifications when you enter disaster-prone zones. Get updates on earthquakes, floods, and extreme weather.',
+    emoji: '🚨',
+  },
+  {
+    title: 'Prepare & Learn',
+    description:
+      'Build your emergency kit, learn safety procedures, and test your knowledge with interactive quizzes.',
+    emoji: '📚',
+  },
+  {
+    title: 'Track Progress',
+    description:
+      'Monitor your preparedness score and see how well your household is ready for emergencies.',
+    emoji: '📊',
+  },
+];
+
+interface OnboardingScreenProps {
+  onComplete?: () => void;
+}
+
+export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
+  onComplete,
+}) => {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const handleNext = () => {
+    if (currentStep < ONBOARDING_STEPS.length - 1) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      scrollViewRef.current?.scrollTo({
+        x: nextStep * width,
+        animated: true,
+      });
+    } else {
+      onComplete?.();
+    }
+  };
+
+  const handleSkip = () => {
+    onComplete?.();
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    slide: {
+      width: width,
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.xl,
+    },
+    emoji: {
+      fontSize: 80,
+      marginBottom: theme.spacing.xl,
+    },
+    title: {
+      color: COLORS.textPrimary,
+      fontSize: theme.fontSize.xxxl,
+      fontWeight: 'bold',
+      marginBottom: theme.spacing.lg,
+      textAlign: 'center',
+    },
+    description: {
+      color: COLORS.textSecondary,
+      fontSize: theme.fontSize.base,
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: theme.spacing.xl,
+    },
+    footer: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingBottom: theme.spacing.xl,
+      paddingTop: theme.spacing.lg,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    skipButton: {
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    skipText: {
+      color: COLORS.textSecondary,
+      fontSize: theme.fontSize.base,
+    },
+    nextButton: {
+      backgroundColor: COLORS.accent,
+      borderRadius: theme.borderRadius.lg,
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
+    },
+    nextButtonText: {
+      color: COLORS.background,
+      fontSize: theme.fontSize.md,
+      fontWeight: '600',
+    },
+    dots: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.xl,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: COLORS.border,
+    },
+    activeDot: {
+      backgroundColor: COLORS.accent,
+      width: 24,
+    },
+  });
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        scrollEventThrottle={16}
+        scrollIndicatorInsets={{ top: 1 }}
+        showsHorizontalScrollIndicator={false}
+        style={styles.scrollView}
+      >
+        {ONBOARDING_STEPS.map((step, index) => (
+          <View key={index} style={styles.slide}>
+            <Text style={styles.emoji}>{step.emoji}</Text>
+            <Text style={styles.title}>{step.title}</Text>
+            <Text style={styles.description}>{step.description}</Text>
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
+
+        {/* Dots */}
+        <View style={styles.dots}>
+          {ONBOARDING_STEPS.map((_, index) => (
+            <View
+              key={index}
+              style={[styles.dot, index === currentStep && styles.activeDot]}
+            />
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <Text style={styles.nextButtonText}>
+            {currentStep === ONBOARDING_STEPS.length - 1 ? 'Get Started' : 'Next'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default OnboardingScreen;
