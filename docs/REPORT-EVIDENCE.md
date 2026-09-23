@@ -111,11 +111,38 @@ To be completed as phases close.
 
 | Measurement | Baseline | Final | Target | Method |
 |---|---|---|---|---|
-| Statement coverage | 33.12% | _pending_ | >70% | `npx jest --coverage` |
-| Alert latency (mean) | not measured | _pending_ | <500ms | instrumented harness |
-| Alert latency (p95) | not measured | _pending_ | <500ms | instrumented harness |
-| Battery drain (iOS) | not measured | _pending_ | ≤5%/hr | Xcode Instruments, Energy Impact |
-| Battery drain (Android) | not measured | _pending_ | ≤5%/hr | `adb bugreport` → Battery Historian |
+| Statement coverage | 33.12% | **93.29%** | >70% | `npx jest --coverage` |
+| Branch coverage | 45.45% | **91.41%** | >70% | as above |
+| Function coverage | 31.42% | **94.52%** | >70% | as above |
+| Line coverage | 31.33% | **93.09%** | >70% | as above |
+| Passing tests | 33 (+12 stubs) | **156** (+18 emulator-gated) | — | `npx jest` |
+| Alert latency (mean) | not measured | **0.06ms** | <500ms | `__tests__/performance`, 100 iterations |
+| Alert latency (p95) | not measured | **0.07ms** | <500ms | as above |
+| Battery drain (iOS) | not measured | _pending device test_ | ≤5%/hr | Xcode Instruments, Energy Impact |
+| Battery drain (Android) | not measured | _pending device test_ | ≤5%/hr | `adb bugreport` → Battery Historian |
+
+### Coverage scope
+
+Measured over `app/utils/**`, `app/hooks/**` and `app/i18n/rtl.ts`. Translation
+data files are **deliberately excluded**: they are object literals that register
+as fully covered the moment they are imported, which would inflate the figure
+without testing anything. A 70% threshold is enforced in `package.json`, so the
+suite fails rather than silently regressing.
+
+### Latency method and its caveat
+
+Measured over 100 iterations of the path that actually ships — cache read, zone
+detection, notification dispatch — at both a realistic three zones and the
+twenty-region iOS geofence ceiling.
+
+**These figures come from Node on a development machine, not from the device.**
+A phone would be slower. The margin is roughly four orders of magnitude below
+budget, so the conclusion holds, but the number should be reported as an
+algorithmic bound rather than a device measurement.
+
+Network latency is excluded by design: with Cloud Functions unavailable (D1),
+no alert depends on a round-trip. The delivery path is entirely on-device, which
+is why it is fast and why it works offline.
 
 ---
 
@@ -188,6 +215,35 @@ English and Urdu translations cover the app's own interface. Locale is persisted
 The same round of testing showed tasks, kit items and quiz questions still rendering in English. The cause was structural: that copy was hardcoded in `constants/preparedness.ts`, so only the chrome had ever been translatable. The constants now hold **structure only** — id, priority, topic, correct answer — and all display text moved to `app/i18n/content.ts`, keyed by id. Adding a third language now touches no constant and no screen.
 
 **Remaining limitation.** Alert titles and descriptions come from Firestore in whatever language the operator published. The app cannot translate operator content, only its own copy.
+
+---
+
+## 4b. Testing approach
+
+**Integration tests are real, and gated rather than stubbed.** The suite arrived with
+12 `it.todo()` placeholders — including every integration test — which report as
+passing while asserting nothing. These were replaced with 18 executable tests against
+the Firestore emulator covering the security rules (owner isolation, alert
+write-protection, audit-trail immutability, deny-by-default) and write atomicity.
+
+They require a Java runtime, which is not installed on the development machine, so
+they **skip visibly** rather than passing vacuously. Run them with:
+
+```bash
+npm run test:rules
+```
+
+**Two defects were found by writing the tests**, which is itself worth recording:
+
+1. `permissions.ts` cached a granted result at module scope for the session. A
+   permission revoked from Settings mid-session would never have been noticed. The
+   shared promise now collapses only *concurrent* requests and clears once settled,
+   so status is re-read each call — the same single-dialog behaviour, without the
+   stale grant.
+2. The first attempt at isolating that cache in tests called the hook factory inside
+   the render callback, creating a new hook identity per render. Caught immediately
+   by the failing suite; the production fix above removed the need for isolation
+   entirely.
 
 ---
 

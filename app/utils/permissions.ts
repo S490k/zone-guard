@@ -31,11 +31,15 @@ export async function ensureForegroundPermission(): Promise<boolean> {
     }
   })();
 
-  const granted = await foregroundRequest;
-  // Clear on denial so a later attempt can prompt again; a grant is permanent
-  // for the session and stays cached.
-  if (!granted) foregroundRequest = null;
-  return granted;
+  try {
+    return await foregroundRequest;
+  } finally {
+    // Cleared once settled, whatever the outcome. The shared promise exists to
+    // collapse *concurrent* requests into one dialog; caching the result beyond
+    // that would miss a permission revoked from Settings mid-session, and the
+    // status check it replaces is cheap.
+    foregroundRequest = null;
+  }
 }
 
 /** Must follow a granted foreground permission — iOS rejects it otherwise. */
@@ -67,7 +71,9 @@ export async function ensureBackgroundPermission(): Promise<boolean> {
     }
   })();
 
-  const granted = await backgroundRequest;
-  if (!granted) backgroundRequest = null;
-  return granted;
+  try {
+    return await backgroundRequest;
+  } finally {
+    backgroundRequest = null;
+  }
 }
