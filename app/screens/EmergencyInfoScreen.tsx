@@ -11,10 +11,13 @@ import theme from '@theme/colors';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { TaskCard } from '@components/TaskCard';
 import { useProgress } from '@context/ProgressContext';
+import { useLanguage } from '@context/LanguageContext';
+import { LanguageToggle } from '@components/LanguageToggle';
 import { EMERGENCY_KIT_ITEMS } from '@constants/preparedness';
 
 export const EmergencyInfoScreen: React.FC = () => {
   const { isKitItemComplete, toggleKitItem } = useProgress();
+  const { t } = useLanguage();
 
   const completedItems = EMERGENCY_KIT_ITEMS.filter((item) =>
     isKitItemComplete(item.id)
@@ -154,12 +157,23 @@ export const EmergencyInfoScreen: React.FC = () => {
           <Text style={styles.subtitle}>Resources & preparedness guide</Text>
         </View>
 
+        {/* Language */}
+        <View style={styles.section}>
+          <GlassmorphicCard>
+            <LanguageToggle />
+          </GlassmorphicCard>
+        </View>
+
         {/* Household Emergency Kit Audit */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Household Emergency Kit</Text>
+          <Text style={styles.sectionTitle}>{t('emergency.kitTitle')}</Text>
           <View style={styles.progressContainer}>
             <Text style={styles.progressText}>
-              Completion: {completedItems}/{EMERGENCY_KIT_ITEMS.length} ({completionPercentage}%)
+              {t('emergency.completion', {
+                done: completedItems,
+                total: EMERGENCY_KIT_ITEMS.length,
+                percent: completionPercentage,
+              })}
             </Text>
             <View style={styles.progressBar}>
               <View

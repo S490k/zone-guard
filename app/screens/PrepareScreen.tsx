@@ -14,11 +14,13 @@ import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { TaskCard } from '@components/TaskCard';
 import { QuizRunner } from '@components/QuizRunner';
 import { useProgress } from '@context/ProgressContext';
+import { useLanguage } from '@context/LanguageContext';
 import { PREPAREDNESS_TASKS, QUIZ_QUESTIONS, QUIZ_TOPICS } from '@constants/preparedness';
 import { MASTERY_REPETITIONS } from '@utils/preparednessScore';
 
 export const PrepareScreen: React.FC = () => {
   const { progress, isTaskComplete, toggleTask } = useProgress();
+  const { t } = useLanguage();
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
 
   const completedTasks = PREPAREDNESS_TASKS.filter((task) => isTaskComplete(task.id)).length;
@@ -113,15 +115,18 @@ export const PrepareScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Prepare</Text>
-          <Text style={styles.subtitle}>Build your emergency readiness</Text>
+          <Text style={styles.title}>{t('prepare.title')}</Text>
+          <Text style={styles.subtitle}>{t('prepare.subtitle')}</Text>
         </View>
 
         {/* Tasks Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preparation Tasks</Text>
+          <Text style={styles.sectionTitle}>{t('prepare.tasksTitle')}</Text>
           <Text style={styles.progressText}>
-            {completedTasks} of {PREPAREDNESS_TASKS.length} completed
+            {t('prepare.tasksProgress', {
+              done: completedTasks,
+              total: PREPAREDNESS_TASKS.length,
+            })}
           </Text>
           <GlassmorphicCard>
             <View style={styles.tasksList}>
@@ -138,9 +143,12 @@ export const PrepareScreen: React.FC = () => {
 
         {/* Quizzes Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Knowledge Quizzes</Text>
+          <Text style={styles.sectionTitle}>{t('prepare.quizzesTitle')}</Text>
           <Text style={styles.progressText}>
-            {completedQuizzes} of {topicSummaries.length} mastered
+            {t('prepare.quizProgress', {
+              done: completedQuizzes,
+              total: topicSummaries.length,
+            })}
           </Text>
           <GlassmorphicCard>
             <View style={styles.quizGrid}>
@@ -159,11 +167,16 @@ export const PrepareScreen: React.FC = () => {
                   >
                     <Text style={styles.quizTitle}>{topic}</Text>
                     <Text style={styles.quizMeta}>
-                      {questions.length} questions • {mastered}/{questions.length} mastered
+                      {t('prepare.questionsMastered', {
+                        done: mastered,
+                        total: questions.length,
+                      })}
                     </Text>
                     {nextReview && (
                       <Text style={styles.quizMeta}>
-                        Next review {new Date(nextReview).toLocaleDateString()}
+                        {t('prepare.nextReview', {
+                          date: new Date(nextReview).toLocaleDateString(),
+                        })}
                       </Text>
                     )}
                   </TouchableOpacity>

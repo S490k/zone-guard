@@ -4,6 +4,7 @@ import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { QuizQuestion } from '@constants/preparedness';
 import { useProgress } from '@context/ProgressContext';
+import { useLanguage } from '@context/LanguageContext';
 
 interface QuizRunnerProps {
   topic: string;
@@ -13,6 +14,7 @@ interface QuizRunnerProps {
 
 export const QuizRunner: React.FC<QuizRunnerProps> = ({ topic, questions, onClose }) => {
   const { recordQuizAnswer } = useProgress();
+  const { t } = useLanguage();
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
@@ -120,7 +122,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ topic, questions, onClos
           accessibilityRole="button"
           accessibilityLabel="Finish quiz and return"
         >
-          <Text style={styles.buttonText}>Done</Text>
+          <Text style={styles.buttonText}>{t('quiz.done')}</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -130,7 +132,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ topic, questions, onClos
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.topic}>{topic}</Text>
       <Text style={styles.counter}>
-        Question {index + 1} of {questions.length}
+        {t('quiz.questionOf', { current: index + 1, total: questions.length })}
       </Text>
       <Text style={styles.question}>{question.question}</Text>
 
@@ -154,7 +156,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ topic, questions, onClos
             style={[styles.verdict, { color: isCorrect ? COLORS.success : COLORS.alertCritical }]}
             accessibilityLiveRegion="polite"
           >
-            {isCorrect ? 'Correct' : 'Not quite'}
+            {isCorrect ? t('quiz.correct') : t('quiz.incorrect')}
           </Text>
           <Text style={styles.explanation}>{question.explanation}</Text>
           <TouchableOpacity
@@ -164,7 +166,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ topic, questions, onClos
             accessibilityLabel={index + 1 >= questions.length ? 'See results' : 'Next question'}
           >
             <Text style={styles.buttonText}>
-              {index + 1 >= questions.length ? 'See results' : 'Next question'}
+              {index + 1 >= questions.length ? t('quiz.seeResults') : t('quiz.next')}
             </Text>
           </TouchableOpacity>
         </>
@@ -176,7 +178,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ topic, questions, onClos
         accessibilityRole="button"
         accessibilityLabel="Exit quiz"
       >
-        <Text style={styles.secondaryText}>Exit</Text>
+        <Text style={styles.secondaryText}>{t('quiz.exit')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

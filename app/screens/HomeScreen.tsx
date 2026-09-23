@@ -11,6 +11,7 @@ import theme from '@theme/colors';
 import { useLocationMonitor } from '@hooks/useLocationMonitor';
 import { useZones, ZonesSource } from '@context/ZonesContext';
 import { useProgress } from '@context/ProgressContext';
+import { useLanguage } from '@context/LanguageContext';
 import { SCORE_WEIGHTS } from '@utils/preparednessScore';
 import { SEVERITY_COLORS } from '@constants/zones';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
@@ -27,6 +28,7 @@ export const HomeScreen: React.FC = () => {
   const { zones, source, isLoading } = useZones();
   const { location, activeZones, error } = useLocationMonitor(zones);
   const { score } = useProgress();
+  const { t } = useLanguage();
 
   const styles = StyleSheet.create({
     container: {
@@ -117,10 +119,8 @@ export const HomeScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subtitle}>
-            Your disaster preparedness overview
-          </Text>
+          <Text style={styles.title}>{t('home.title')}</Text>
+          <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
         </View>
 
         {/* Error Alert */}
@@ -138,7 +138,7 @@ export const HomeScreen: React.FC = () => {
 
         {/* Preparedness Score */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preparedness Score</Text>
+          <Text style={styles.sectionTitle}>{t('home.scoreTitle')}</Text>
           <GlassmorphicCard>
             <View style={styles.scoreContainer}>
               <StressIndicator score={score.total} size="lg" />
@@ -152,11 +152,12 @@ export const HomeScreen: React.FC = () => {
 
         {/* Location & Zones */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Location</Text>
+          <Text style={styles.sectionTitle}>{t('home.locationTitle')}</Text>
           <GlassmorphicCard>
             <GeofenceMap
               userLat={location?.latitude}
               userLon={location?.longitude}
+              zones={zones}
             />
             <Text style={styles.statusText}>
               {location
@@ -169,20 +170,18 @@ export const HomeScreen: React.FC = () => {
         {/* Monitored Zones */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {zonesContainingUser.length > 0 ? 'You are in a disaster zone' : 'Monitored Zones'}
+            {zonesContainingUser.length > 0 ? t('home.inZone') : t('home.monitoredZones')}
           </Text>
           <Text style={styles.zoneDistance}>
             {isLoading
-              ? 'Loading zones…'
-              : `${zones.length} zone${zones.length === 1 ? '' : 's'} monitored · ${SOURCE_LABEL[source]}`}
+              ? t('home.loadingZones')
+              : `${t('home.zonesMonitored', { count: zones.length })} · ${SOURCE_LABEL[source]}`}
           </Text>
 
           {rankedZones.length === 0 ? (
             <GlassmorphicCard style={{ marginTop: theme.spacing.md }}>
               <Text style={styles.statusText}>
-                {zones.length === 0
-                  ? 'No active zones. Alerts will appear here when one is published.'
-                  : 'Waiting for your location to compare against zones…'}
+                {zones.length === 0 ? t('home.noZones') : t('home.waitingLocation')}
               </Text>
             </GlassmorphicCard>
           ) : (

@@ -164,6 +164,27 @@ Per-fix location logging was also removed: a position arrived every few seconds,
 
 ---
 
+### D8 — Accessibility annotations and the one real contrast failure
+The app had **zero** accessibility props, so a screen reader announced raw text with no roles, states or grouping. All interactive elements now carry roles, labels and states; 30 annotations across the app.
+
+Every text/background pair was measured against WCAG 2.1 AA rather than assumed. Only one failed: `textTertiary` `#6B7489` on `#0A0E27` at **4.06:1**, under the 4.5:1 floor for normal text. Replaced with `#737C97` at **4.58:1**, which passes while remaining visually subordinate. Verified as already passing and left unchanged: `textSecondary` 9.01:1, `accent` 10.74:1, and all four severity colours (5.16:1 to 11.66:1).
+
+`TaskCard` was a 24×24 checkbox nested inside a card touchable — below the 44×44 minimum, two overlapping targets for one action, and the card itself inert whenever only `onToggle` was supplied. It is now a single row-sized target with `checkbox` role and `checked` state.
+
+Zone entry is announced **assertively** rather than politely. It is the most consequential state the app reports, and a sighted user perceives it immediately from the colour change; a polite announcement would queue behind whatever else is speaking.
+
+### D9 — Stubs replaced with working implementations
+`GlassmorphicCard` and `GeofenceMap` were placeholders — a plain `View` and a text label reading "Map Component". Now `expo-blur` and `react-native-maps` respectively, with zone circles coloured by severity and an animated pulse on the user's position. The map frames itself around the widest active zone rather than using a fixed span.
+
+Offline state is surfaced by a banner driven by `NetInfo`, keyed on `isInternetReachable` rather than `isConnected` alone, so a connected-but-captive network is reported as offline rather than working.
+
+### D10 — Bilingual support and its RTL constraint
+English and Urdu translations cover the app's own interface. Locale is persisted and defaults to the device language when it is one of the two.
+
+**Two honest limitations.** React Native fixes layout direction at native startup, so switching to Urdu requires an app restart before the RTL layout applies; the toggle states this rather than appearing to fail. And alert titles and descriptions come from Firestore in whatever language the operator published — the app cannot translate operator content, only its own chrome.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
@@ -171,6 +192,9 @@ Each entry requires a technical justification, not a scheduling one.
 | # | Limitation | Technical cause |
 |---|---|---|
 | L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server pipeline validated in the emulator only. |
+| L2 | Switching to Urdu requires an app restart before the layout flips | React Native fixes layout direction at native startup; `I18nManager.forceRTL` cannot take effect mid-session without a reload module. The toggle states this explicitly. |
+| L3 | Alert titles and descriptions are not translated | They originate in Firestore in whatever language the operator published. Only the app's own interface can be localised client-side. |
+| L4 | Android blur uses a software implementation | Android exposes no native backdrop blur below API 31; `expo-blur` falls back to `dimezisBlurView`, which is explicitly opted into rather than silently degrading to a flat surface. |
 
 ---
 

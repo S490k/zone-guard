@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
+import { useLanguage } from '@context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -55,6 +56,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const { t } = useLanguage();
 
   const handleNext = () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
@@ -197,7 +199,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Skip the introduction"
         >
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
 
         {/* Dots */}
@@ -226,7 +228,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           }
         >
           <Text style={styles.nextButtonText}>
-            {currentStep === ONBOARDING_STEPS.length - 1 ? 'Get Started' : 'Next'}
+            {currentStep === ONBOARDING_STEPS.length - 1
+              ? t('onboarding.getStarted')
+              : t('onboarding.next')}
           </Text>
         </TouchableOpacity>
       </View>

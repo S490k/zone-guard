@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '@constants/colors';
 
 import OnboardingScreen from '@screens/OnboardingScreen';
+import { OfflineBanner } from '@components/OfflineBanner';
 import HomeScreen from '@screens/HomeScreen';
 import PrepareScreen from '@screens/PrepareScreen';
 import AlertsScreen from '@screens/AlertsScreen';
@@ -19,6 +20,7 @@ import { setupPushNotifications, setupNotificationListeners } from '@utils/fcmSe
 import { useAuth } from '@hooks/useAuth';
 import { ZonesProvider } from '@context/ZonesContext';
 import { ProgressProvider } from '@context/ProgressContext';
+import { LanguageProvider, useLanguage } from '@context/LanguageContext';
 // Importing this file registers the background tasks with TaskManager (must happen at startup).
 import {
   startBackgroundLocationTracking,
@@ -52,6 +54,8 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 function TabNavigator() {
+  const { t } = useLanguage();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -67,13 +71,13 @@ function TabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Dashboard" component={HomeScreen} />
-      <Tab.Screen name="Prepare" component={PrepareScreen} />
-      <Tab.Screen name="Alerts" component={AlertsScreen} />
+      <Tab.Screen name="Dashboard" component={HomeScreen} options={{ title: t('tabs.dashboard') }} />
+      <Tab.Screen name="Prepare" component={PrepareScreen} options={{ title: t('tabs.prepare') }} />
+      <Tab.Screen name="Alerts" component={AlertsScreen} options={{ title: t('tabs.alerts') }} />
       <Tab.Screen
         name="EmergencyInfo"
         component={EmergencyInfoScreen}
-        options={{ title: 'Emergency Info' }}
+        options={{ title: t('tabs.emergencyInfo') }}
       />
     </Tab.Navigator>
   );
@@ -147,17 +151,20 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <ZonesProvider>
-        <ProgressProvider>
-          {hasSeenOnboarding ? (
-            <NavigationContainer theme={navigationTheme}>
-              <TabNavigator />
-            </NavigationContainer>
-          ) : (
-            <OnboardingScreen onComplete={completeOnboarding} />
-          )}
-        </ProgressProvider>
-      </ZonesProvider>
+      <LanguageProvider>
+        <ZonesProvider>
+          <ProgressProvider>
+            {hasSeenOnboarding ? (
+              <NavigationContainer theme={navigationTheme}>
+                <TabNavigator />
+                <OfflineBanner />
+              </NavigationContainer>
+            ) : (
+              <OnboardingScreen onComplete={completeOnboarding} />
+            )}
+          </ProgressProvider>
+        </ZonesProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

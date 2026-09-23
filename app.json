@@ -11,13 +11,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#0A0E27"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.zoneguard.app",
       "buildNumber": "1",
       "infoPlist": {
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"],
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
         "NSLocationAlwaysAndWhenInUseUsageDescription": "ZoneGuard uses your location in the background to warn you when you enter a disaster risk zone.",
         "NSLocationWhenInUseUsageDescription": "ZoneGuard uses your location to show nearby disaster risk zones."
       }
@@ -56,7 +62,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#00D4FF"
         }
-      ]
+      ],
+      "expo-localization"
     ]
   }
 }

@@ -11,11 +11,13 @@ import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { useZones } from '@context/ZonesContext';
+import { useLanguage } from '@context/LanguageContext';
 import { presentZoneAlert } from '@utils/localAlerts';
 import { requestNotificationPermissions } from '@utils/fcmSetup';
 
 export const AlertsScreen: React.FC = () => {
   const { zones, source, isLoading } = useZones();
+  const { t } = useLanguage();
   const [testStatus, setTestStatus] = useState<string | null>(null);
 
   const handleTestAlert = async () => {
@@ -166,15 +168,15 @@ export const AlertsScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Alerts</Text>
+          <Text style={styles.title}>{t('alerts.title')}</Text>
           <Text style={styles.subtitle}>
             {isLoading
-              ? 'Loading active alerts…'
+              ? t('alerts.loading')
               : source === 'firestore'
-                ? 'Live from the national alert feed'
+                ? t('alerts.live')
                 : source === 'cache'
-                  ? 'Offline — showing last synced alerts'
-                  : 'Offline — showing default zones'}
+                  ? t('alerts.cached')
+                  : t('alerts.defaults')}
           </Text>
         </View>
 
@@ -186,7 +188,7 @@ export const AlertsScreen: React.FC = () => {
           accessibilityLabel="Send a test alert notification"
           accessibilityHint="Delivers a clearly marked test notification so you can confirm alerts work"
         >
-          <Text style={styles.testButtonText}>Send Test Alert</Text>
+          <Text style={styles.testButtonText}>{t('alerts.testButton')}</Text>
         </TouchableOpacity>
         {testStatus && (
           <Text style={styles.alertMeta} accessibilityLiveRegion="polite">
@@ -196,11 +198,11 @@ export const AlertsScreen: React.FC = () => {
 
         {/* Active Alerts */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Active Alerts ({zones.length})</Text>
+          <Text style={styles.sectionTitle}>
+            {t('alerts.activeAlerts', { count: zones.length })}
+          </Text>
           {zones.length === 0 ? (
-            <Text style={styles.emptyState}>
-              No active alerts. Published alerts appear here automatically.
-            </Text>
+            <Text style={styles.emptyState}>{t('alerts.none')}</Text>
           ) : (
             <GlassmorphicCard>
               <View style={styles.alertsList}>
