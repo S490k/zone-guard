@@ -26,6 +26,7 @@ export function useLocationMonitor(): UseLocationMonitorReturn {
   const [error, setError] = useState<Error | null>(null);
 
   const watchSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
+  const inZoneKeyRef = useRef<string>('');
 
   // Delegates to the shared gate so this does not race the background task's
   // own request — iOS treats a concurrent second request as denied.
@@ -73,8 +74,21 @@ export function useLocationMonitor(): UseLocationMonitorReturn {
           );
           setActiveZones(zones);
 
-          console.log('Location update:', locationData);
-          console.log('Active zones:', zones);
+          // A position arrives every few seconds; logging each one buries the
+          // events that matter. Only membership changes are worth a line.
+          const inZoneKey = zones
+            .filter((zone) => zone.isInZone)
+            .map((zone) => zone.zoneId)
+            .sort()
+            .join(',');
+
+          if (inZoneKey !== inZoneKeyRef.current) {
+            inZoneKeyRef.current = inZoneKey;
+            console.log(
+              `[LocationMonitor] Zones entered: ${inZoneKey || 'none'} ` +
+                `(at ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`
+            );
+          }
         }
       );
     } catch (err) {

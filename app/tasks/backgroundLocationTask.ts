@@ -18,6 +18,15 @@ const RETRY_DELAY_MS = 1000;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * kCLErrorLocationUnknown (code 0) means Core Location has no fix at this
+ * instant but is still trying. Apple's guidance is to ignore it — surfacing it
+ * as an error misrepresents a condition that resolves on its own.
+ */
+function isTransientLocationError(error: { message?: string }): boolean {
+  return Boolean(error.message?.includes('kCLErrorDomain Code=0'));
+}
+
+/**
  * Firestore writes from a background task routinely land with no connectivity.
  * Retries with a fixed backoff, then gives up quietly rather than throwing —
  * an unhandled rejection here would tear down the task registration.
@@ -51,7 +60,11 @@ async function writeUserDocWithRetry(
 // ---------------------------------------------------------------------------
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK_NAME, async ({ data, error }) => {
   if (error) {
-    console.error('[BackgroundLocation] Task error:', error.message);
+    if (isTransientLocationError(error)) {
+      console.log('[BackgroundLocation] No fix available yet; awaiting next update');
+    } else {
+      console.error('[BackgroundLocation] Task error:', error.message);
+    }
     return;
   }
   if (!data) return;

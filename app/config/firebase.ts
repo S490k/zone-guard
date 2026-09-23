@@ -1,7 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 // @ts-ignore - getReactNativePersistence is exported from the RN bundle of firebase/auth
 import { initializeAuth, getReactNativePersistence, getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -32,7 +32,15 @@ if (isFirebaseConfigured) {
     // initializeAuth throws if called twice (e.g. fast refresh) – reuse existing instance
     auth = getAuth(app);
   }
-  db = getFirestore(app);
+  try {
+    // React Native's XHR shim does not sustain Firestore's WebChannel
+    // transport: streams error out every few minutes and silently reconnect,
+    // dropping listener updates in between. Long polling is stable here.
+    db = initializeFirestore(app, { experimentalForceLongPolling: true });
+  } catch {
+    // initializeFirestore throws if already called (e.g. fast refresh)
+    db = getFirestore(app);
+  }
 } else {
   console.warn(
     '[ZoneGuard] Firebase not configured – copy .env.example to .env.local and fill it in. Running in local-only mode.'

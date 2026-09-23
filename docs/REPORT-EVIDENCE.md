@@ -96,6 +96,51 @@ To be completed as phases close.
 
 ---
 
+## 4a. Device verification — Phase 1
+
+**Environment:** iPhone 17 Pro simulator, iOS 26.2, development build (`npm run ios`). Firebase project `zoneguard-a3c6b`, Spark plan, anonymous auth enabled, rules and composite index deployed.
+
+**Method.** Simulated position was driven from the command line rather than the Simulator GUI, giving a repeatable procedure:
+
+```bash
+xcrun simctl location booted set 30.9500,70.8503   # ~28km north, outside the zone
+xcrun simctl location booted set 30.6987,70.8503   # Taunsa Barrage centre, inside
+```
+
+Approaching from outside and crossing the boundary was chosen over teleporting to the centre, because iOS raises `Enter` reliably on a crossing but not always on a jump.
+
+**Result — the full alerting chain fired end to end:**
+
+```
+[Geofencing] Entered region zone-taunsa-barrage
+Notification received: Taunsa Barrage Flood Risk
+[LocalAlerts] Delivered alert for zone-taunsa-barrage (test=false)
+[LocalAlerts] Suppressed duplicate alert for zone-taunsa-barrage
+```
+
+| Criterion | Evidence | Status |
+|---|---|---|
+| Background tracking starts | `Tracking started (updates=true, geofences=3)` | ✅ |
+| Geofences registered | 3 regions, re-registered on zone-cache update | ✅ |
+| Zone entry detected | `Entered region zone-taunsa-barrage` | ✅ |
+| Alert delivered on entry | Notification received by the app's own listener | ✅ |
+| **Duplicate suppression** | Second detection, from the location-updates task, suppressed by the 60s cooldown | ✅ |
+| Haversine accuracy | San Francisco → Pakistan zones reported 11,827–12,692km, consistent with true great-circle distances | ✅ |
+| Firestore query after index deploy | `0 active alerts` — query resolves, collection genuinely empty | ✅ |
+
+The duplicate suppression is notable: the geofence task and the location-updates task detected the same entry independently, and the cooldown collapsed them into a single notification. This is the idempotency requirement, demonstrated without a server.
+
+**Two defects surfaced by this run, both fixed:**
+
+- `WebChannelConnection RPC 'Listen' stream transport errored`, recurring every 15–20 minutes. React Native's XHR shim does not sustain Firestore's WebChannel transport; streams error and silently reconnect, dropping listener updates in the gap. Resolved by forcing long polling in `initializeFirestore`. For an alerts listener this is a functional concern, not cosmetic.
+- `kCLErrorDomain Code=0` logged at error severity. This is `kCLErrorLocationUnknown` — Core Location has no fix at that instant but continues trying, and Apple's guidance is to ignore it. Now classified as transient and logged accordingly.
+
+Per-fix location logging was also removed: a position arrived every few seconds, burying the zone-transition events. The monitor now logs only on a change of zone membership, satisfying the roadmap's requirement that logs be diagnostic rather than exhaustive.
+
+**Not verifiable on simulator** — deferred to physical device: background survival after app termination, the iOS blue location indicator, Expo push-token registration (`Device.isDevice` is false), and battery drain.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
