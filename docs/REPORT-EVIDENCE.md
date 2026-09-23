@@ -184,7 +184,7 @@ Each entry requires a technical justification, not a scheduling one.
 | 1b | `cfc6017` | Firestore transport forced to long polling; transient Core Location errors reclassified. |
 | 2 | `424bca7` | Live Firestore zones rendered; `ZonesProvider` introduced as the single source. |
 | 2a | `e06f92f` | Geofence layer and UI disagreed on an empty alert set; cache now records `syncedAt`. |
-| 3 | `0a1e4f9` | Progress persisted offline-first; SM-2 wired to a real quiz; score derived from actual completions. |
+| 3 | `b4f6868` | Progress persisted offline-first; SM-2 wired to a real quiz; score derived from actual completions. |
 
 ### Phase 1 detail — blocking defects resolved
 
