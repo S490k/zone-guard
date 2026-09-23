@@ -14,10 +14,13 @@ import { useProgress } from '@context/ProgressContext';
 import { useLanguage } from '@context/LanguageContext';
 import { LanguageToggle } from '@components/LanguageToggle';
 import { EMERGENCY_KIT_ITEMS } from '@constants/preparedness';
+import { rtlText } from '../i18n/rtl';
+
+const GUIDE_IDS = ['earthquake', 'flood', 'heat', 'general'] as const;
 
 export const EmergencyInfoScreen: React.FC = () => {
   const { isKitItemComplete, toggleKitItem } = useProgress();
-  const { t } = useLanguage();
+  const { t, tList, isRTL } = useLanguage();
 
   const completedItems = EMERGENCY_KIT_ITEMS.filter((item) =>
     isKitItemComplete(item.id)
@@ -25,45 +28,6 @@ export const EmergencyInfoScreen: React.FC = () => {
   const completionPercentage = Math.round(
     (completedItems / EMERGENCY_KIT_ITEMS.length) * 100
   );
-
-  const resources = [
-    {
-      title: 'Earthquake Safety',
-      tips: [
-        'DROP, COVER, HOLD ON at first shake',
-        'Get under sturdy table or against interior wall',
-        'Stay away from windows and heavy objects',
-        'Do not run outside',
-      ],
-    },
-    {
-      title: 'Flood Preparedness',
-      tips: [
-        'Evacuate immediately if ordered',
-        'Move to higher ground',
-        'Do not drive through flooded areas',
-        'Turn off utilities if instructed',
-      ],
-    },
-    {
-      title: 'Heat Wave Safety',
-      tips: [
-        'Stay hydrated - drink water constantly',
-        'Stay in cool, air-conditioned places',
-        'Avoid strenuous activity during peak heat',
-        'Check on elderly neighbors',
-      ],
-    },
-    {
-      title: 'General Emergency Response',
-      tips: [
-        'Call emergency services only if necessary',
-        'Listen to official broadcasts',
-        'Account for all family members',
-        'Help others if safe to do so',
-      ],
-    },
-  ];
 
   const styles = StyleSheet.create({
     container: {
@@ -82,10 +46,12 @@ export const EmergencyInfoScreen: React.FC = () => {
       fontSize: theme.fontSize.xxxl,
       fontWeight: 'bold',
       marginBottom: theme.spacing.sm,
+      ...rtlText(isRTL),
     },
     subtitle: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.base,
+      ...rtlText(isRTL),
     },
     section: {
       marginBottom: theme.spacing.xl,
@@ -95,6 +61,7 @@ export const EmergencyInfoScreen: React.FC = () => {
       fontSize: theme.fontSize.lg,
       fontWeight: '600',
       marginBottom: theme.spacing.md,
+      ...rtlText(isRTL),
     },
     progressContainer: {
       backgroundColor: COLORS.surface,
@@ -109,6 +76,7 @@ export const EmergencyInfoScreen: React.FC = () => {
       fontSize: theme.fontSize.md,
       fontWeight: '600',
       marginBottom: theme.spacing.sm,
+      ...rtlText(isRTL),
     },
     progressBar: {
       height: 8,
@@ -133,6 +101,7 @@ export const EmergencyInfoScreen: React.FC = () => {
       fontSize: theme.fontSize.md,
       fontWeight: '600',
       marginBottom: theme.spacing.md,
+      ...rtlText(isRTL),
     },
     tipsList: {
       gap: theme.spacing.sm,
@@ -142,6 +111,7 @@ export const EmergencyInfoScreen: React.FC = () => {
       fontSize: theme.fontSize.sm,
       paddingLeft: theme.spacing.md,
       lineHeight: 20,
+      ...rtlText(isRTL),
     },
   });
 
@@ -153,8 +123,8 @@ export const EmergencyInfoScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Emergency Info</Text>
-          <Text style={styles.subtitle}>Resources & preparedness guide</Text>
+          <Text style={styles.title}>{t('emergency.title')}</Text>
+          <Text style={styles.subtitle}>{t('emergency.subtitle')}</Text>
         </View>
 
         {/* Language */}
@@ -189,8 +159,15 @@ export const EmergencyInfoScreen: React.FC = () => {
               {EMERGENCY_KIT_ITEMS.map((item) => (
                 <TaskCard
                   key={item.id}
-                  task={{ ...item, completed: isKitItemComplete(item.id) }}
+                  task={{
+                    id: item.id,
+                    priority: item.priority,
+                    title: t(`content.kit.${item.id}.title`),
+                    description: t(`content.kit.${item.id}.description`),
+                    completed: isKitItemComplete(item.id),
+                  }}
                   onToggle={toggleKitItem}
+                  isRTL={isRTL}
                 />
               ))}
             </View>
@@ -199,15 +176,17 @@ export const EmergencyInfoScreen: React.FC = () => {
 
         {/* Emergency Resources */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Emergency Response Guide</Text>
+          <Text style={styles.sectionTitle}>{t('emergency.guideTitle')}</Text>
           <GlassmorphicCard>
             <View>
-              {resources.map((resource, idx) => (
-                <View key={idx} style={styles.resourceCard}>
-                  <Text style={styles.resourceTitle}>{resource.title}</Text>
+              {GUIDE_IDS.map((guideId) => (
+                <View key={guideId} style={styles.resourceCard}>
+                  <Text style={styles.resourceTitle}>
+                    {t(`content.guides.${guideId}.title`)}
+                  </Text>
                   <View style={styles.tipsList}>
-                    {resource.tips.map((tip, tipIdx) => (
-                      <Text key={tipIdx} style={styles.tipText}>
+                    {tList(`content.guides.${guideId}.tips`).map((tip) => (
+                      <Text key={tip} style={styles.tipText}>
                         • {tip}
                       </Text>
                     ))}

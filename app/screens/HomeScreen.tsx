@@ -8,6 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
+import { rtlText } from '../i18n/rtl';
 import { useLocationMonitor } from '@hooks/useLocationMonitor';
 import { useZones, ZonesSource } from '@context/ZonesContext';
 import { useProgress } from '@context/ProgressContext';
@@ -18,17 +19,17 @@ import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { StressIndicator } from '@components/StressIndicator';
 import { GeofenceMap } from '@components/GeofenceMap';
 
-const SOURCE_LABEL: Record<ZonesSource, string> = {
-  firestore: 'live',
-  cache: 'offline, last synced',
-  bundled: 'offline, default zones',
+const SOURCE_KEY: Record<ZonesSource, string> = {
+  firestore: 'home.sourceLive',
+  cache: 'home.sourceCache',
+  bundled: 'home.sourceBundled',
 };
 
 export const HomeScreen: React.FC = () => {
   const { zones, source, isLoading } = useZones();
   const { location, activeZones, error } = useLocationMonitor(zones);
   const { score } = useProgress();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   const styles = StyleSheet.create({
     container: {
@@ -47,10 +48,12 @@ export const HomeScreen: React.FC = () => {
       fontSize: theme.fontSize.xxxl,
       fontWeight: 'bold',
       marginBottom: theme.spacing.sm,
+      ...rtlText(isRTL),
     },
     subtitle: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.base,
+      ...rtlText(isRTL),
     },
     section: {
       marginBottom: theme.spacing.xl,
@@ -60,6 +63,7 @@ export const HomeScreen: React.FC = () => {
       fontSize: theme.fontSize.lg,
       fontWeight: '600',
       marginBottom: theme.spacing.md,
+      ...rtlText(isRTL),
     },
     scoreContainer: {
       alignItems: 'center',
@@ -70,6 +74,7 @@ export const HomeScreen: React.FC = () => {
       fontSize: theme.fontSize.sm,
       marginTop: theme.spacing.md,
       textAlign: 'center',
+      ...rtlText(isRTL),
     },
     zonesList: {
       gap: theme.spacing.md,
@@ -86,15 +91,18 @@ export const HomeScreen: React.FC = () => {
       fontSize: theme.fontSize.md,
       fontWeight: '600',
       marginBottom: theme.spacing.xs,
+      ...rtlText(isRTL),
     },
     zoneDistance: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.sm,
+      ...rtlText(isRTL),
     },
     errorText: {
       color: COLORS.alertCritical,
       fontSize: theme.fontSize.sm,
       paddingHorizontal: theme.spacing.md,
+      ...rtlText(isRTL),
     },
   });
 
@@ -143,8 +151,11 @@ export const HomeScreen: React.FC = () => {
             <View style={styles.scoreContainer}>
               <StressIndicator score={score.total} size="lg" />
               <Text style={styles.statusText}>
-                Tasks {score.tasks}/{SCORE_WEIGHTS.tasks} · Kit {score.kit}/{SCORE_WEIGHTS.kit} ·
-                Quiz {score.quiz}/{SCORE_WEIGHTS.quiz}
+                {t('home.scoreBreakdown', {
+                  tasks: `${score.tasks}/${SCORE_WEIGHTS.tasks}`,
+                  kit: `${score.kit}/${SCORE_WEIGHTS.kit}`,
+                  quiz: `${score.quiz}/${SCORE_WEIGHTS.quiz}`,
+                })}
               </Text>
             </View>
           </GlassmorphicCard>
@@ -162,7 +173,7 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.statusText}>
               {location
                 ? `📍 ${location.latitude.toFixed(3)}°, ${location.longitude.toFixed(3)}°`
-                : 'Waiting for location...'}
+                : t('home.awaitingFix')}
             </Text>
           </GlassmorphicCard>
         </View>
@@ -175,7 +186,7 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.zoneDistance}>
             {isLoading
               ? t('home.loadingZones')
-              : `${t('home.zonesMonitored', { count: zones.length })} · ${SOURCE_LABEL[source]}`}
+              : `${t('home.zonesMonitored', { count: zones.length })} · ${t(SOURCE_KEY[source])}`}
           </Text>
 
           {rankedZones.length === 0 ? (
@@ -206,15 +217,20 @@ export const HomeScreen: React.FC = () => {
                   <Text style={styles.zoneTitle}>{zone.name}</Text>
                   <Text style={styles.zoneDistance}>
                     {proximity.isInZone
-                      ? `Inside · ${proximity.distance.toFixed(1)}km from centre`
-                      : `${proximity.distance.toFixed(1)}km away · ${zone.radiusKm}km radius`}
+                      ? t('home.insideZone', { distance: proximity.distance.toFixed(1) })
+                      : t('home.awayFromZone', {
+                          distance: proximity.distance.toFixed(1),
+                          radius: zone.radiusKm,
+                        })}
                   </Text>
                   <Text style={[styles.zoneDistance, { color: SEVERITY_COLORS[zone.severity] }]}>
                     {proximity.isInZone
-                      ? `IN ZONE · ${zone.severity.toUpperCase()}`
+                      ? t('home.statusInZone', { severity: zone.severity.toUpperCase() })
                       : proximity.isNearZone
-                        ? `APPROACHING${proximity.estimatedTimeToZone ? ` · ~${proximity.estimatedTimeToZone} min away` : ''}`
-                        : 'CLEAR'}
+                        ? proximity.estimatedTimeToZone
+                          ? t('home.statusApproachingEta', { minutes: proximity.estimatedTimeToZone })
+                          : t('home.statusApproaching')
+                        : t('home.statusClear')}
                   </Text>
                 </View>
               ))}

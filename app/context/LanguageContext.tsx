@@ -1,5 +1,4 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { I18nManager } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18n } from 'i18n-js';
 import * as Localization from 'expo-localization';
@@ -30,16 +29,15 @@ export interface LanguageContextValue {
   locale: SupportedLocale;
   setLocale: (locale: SupportedLocale) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** For translations stored as arrays, such as a question's answer options. */
+  tList: (key: string) => string[];
   isRTL: boolean;
-  /** True when the chosen language needs an app restart to lay out correctly. */
-  needsRestart: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<SupportedLocale>('en');
-  const [needsRestart, setNeedsRestart] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -47,33 +45,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       const initial = isSupported(stored) ? stored : deviceLocale();
       i18n.locale = initial;
       setLocaleState(initial);
-
-      // Layout direction is fixed at native startup, so a stored RTL locale
-      // only renders correctly once the app has been relaunched with it set.
-      const shouldBeRTL = RTL_LOCALES.includes(initial);
-      if (I18nManager.isRTL !== shouldBeRTL) {
-        I18nManager.allowRTL(shouldBeRTL);
-        I18nManager.forceRTL(shouldBeRTL);
-        setNeedsRestart(true);
-      }
     })();
   }, []);
 
+  // Deliberately does not call I18nManager.forceRTL. That mirrors the entire
+  // layout tree, which reorders the tab bar and every icon row, and it needs an
+  // app restart to take effect. Direction is scoped to text content instead, so
+  // navigation stays where the user expects and the switch is immediate.
   const setLocale = useCallback((next: SupportedLocale) => {
     i18n.locale = next;
     setLocaleState(next);
     AsyncStorage.setItem(LOCALE_KEY, next).catch((error) =>
       console.error('[Language] Failed to persist locale:', error)
     );
-
-    const shouldBeRTL = RTL_LOCALES.includes(next);
-    if (I18nManager.isRTL !== shouldBeRTL) {
-      I18nManager.allowRTL(shouldBeRTL);
-      I18nManager.forceRTL(shouldBeRTL);
-      setNeedsRestart(true);
-    } else {
-      setNeedsRestart(false);
-    }
   }, []);
 
   const value = useMemo<LanguageContextValue>(
@@ -82,10 +66,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setLocale,
       // Bound to locale so every consumer re-renders on a language change.
       t: (key, params) => i18n.t(key, params),
+      tList: (key) => {
+        const value = i18n.t(key) as unknown;
+        return Array.isArray(value) ? (value as string[]) : [];
+      },
       isRTL: RTL_LOCALES.includes(locale),
-      needsRestart,
     }),
-    [locale, setLocale, needsRestart]
+    [locale, setLocale]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

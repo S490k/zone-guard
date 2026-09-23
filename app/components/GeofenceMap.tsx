@@ -4,6 +4,7 @@ import MapView, { Circle, Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { DisasterZone, SEVERITY_COLORS } from '@constants/zones';
+import { useLanguage } from '@context/LanguageContext';
 
 interface GeofenceMapProps {
   style?: ViewStyle;
@@ -28,6 +29,7 @@ export const GeofenceMap: React.FC<GeofenceMapProps> = ({
   zones = [],
 }) => {
   const pulse = useRef(new Animated.Value(0)).current;
+  const { t } = useLanguage();
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -88,7 +90,7 @@ export const GeofenceMap: React.FC<GeofenceMapProps> = ({
     return (
       <View style={[styles.container, style]}>
         <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>Waiting for your location…</Text>
+          <Text style={styles.placeholderText}>{t('home.waitingLocation')}</Text>
         </View>
       </View>
     );

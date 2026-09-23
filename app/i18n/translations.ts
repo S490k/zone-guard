@@ -1,3 +1,5 @@
+import { contentEn, contentUr } from './content';
+
 export const SUPPORTED_LOCALES = ['en', 'ur'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -32,6 +34,13 @@ export const translations = {
       awaitingFix: 'Waiting for location…',
       insideZone: 'Inside · {{distance}}km from centre',
       awayFromZone: '{{distance}}km away · {{radius}}km radius',
+      sourceLive: 'live',
+      sourceCache: 'offline, last synced',
+      sourceBundled: 'offline, default zones',
+      statusInZone: 'IN ZONE · {{severity}}',
+      statusApproaching: 'APPROACHING',
+      statusApproachingEta: 'APPROACHING · ~{{minutes}} min away',
+      statusClear: 'CLEAR',
     },
     prepare: {
       title: 'Prepare',
@@ -52,10 +61,19 @@ export const translations = {
       testButton: 'Send Test Alert',
       activeAlerts: 'Active Alerts ({{count}})',
       none: 'No active alerts. Published alerts appear here automatically.',
+      radius: '{{radius}}km radius',
+      expires: ' • expires {{date}}',
+      testSent: 'Test alert sent for {{zone}}.',
+      testNoZones: 'No zones available to test against.',
+      testNoPermission: 'Notifications are turned off for ZoneGuard.',
+      testFailed: 'Test alert could not be delivered.',
     },
     emergency: {
+      title: 'Emergency Info',
+      subtitle: 'Resources and preparedness guide',
       kitTitle: 'Household Emergency Kit',
       completion: 'Completion: {{done}}/{{total}} ({{percent}}%)',
+      guideTitle: 'Emergency Response Guide',
     },
     onboarding: {
       skip: 'Skip',
@@ -70,11 +88,14 @@ export const translations = {
       seeResults: 'See results',
       done: 'Done',
       exit: 'Exit',
+      summaryPerfect: 'Full marks. These questions will return on a longer interval.',
+      summaryPartial: 'Questions you found difficult will come back sooner, so the review schedule adapts to what you actually struggle with.',
     },
     common: {
       offline: 'Offline — using cached data',
       language: 'Language',
     },
+    content: contentEn,
   },
   ur: {
     tabs: {
@@ -98,6 +119,13 @@ export const translations = {
       awaitingFix: 'مقام کا انتظار…',
       insideZone: 'اندر · مرکز سے {{distance}} کلومیٹر',
       awayFromZone: '{{distance}} کلومیٹر دور · {{radius}} کلومیٹر دائرہ',
+      sourceLive: 'براہ راست',
+      sourceCache: 'آف لائن، آخری محفوظ شدہ',
+      sourceBundled: 'آف لائن، طے شدہ علاقے',
+      statusInZone: 'علاقے کے اندر · {{severity}}',
+      statusApproaching: 'قریب پہنچ رہے ہیں',
+      statusApproachingEta: 'قریب · تقریباً {{minutes}} منٹ',
+      statusClear: 'محفوظ',
     },
     prepare: {
       title: 'تیاری',
@@ -118,10 +146,19 @@ export const translations = {
       testButton: 'ٹیسٹ الرٹ بھیجیں',
       activeAlerts: 'فعال الرٹس ({{count}})',
       none: 'کوئی فعال الرٹ نہیں۔ جاری کردہ الرٹس خودبخود یہاں آئیں گے۔',
+      radius: '{{radius}} کلومیٹر دائرہ',
+      expires: ' • اختتام {{date}}',
+      testSent: '{{zone}} کے لیے ٹیسٹ الرٹ بھیج دیا گیا۔',
+      testNoZones: 'ٹیسٹ کے لیے کوئی علاقہ دستیاب نہیں۔',
+      testNoPermission: 'زون گارڈ کے لیے نوٹیفکیشن بند ہیں۔',
+      testFailed: 'ٹیسٹ الرٹ بھیجا نہیں جا سکا۔',
     },
     emergency: {
+      title: 'ہنگامی معلومات',
+      subtitle: 'وسائل اور تیاری کی رہنمائی',
       kitTitle: 'گھریلو ہنگامی کٹ',
       completion: 'تکمیل: {{done}}/{{total}} ({{percent}}%)',
+      guideTitle: 'ہنگامی اقدامات کی رہنمائی',
     },
     onboarding: {
       skip: 'چھوڑیں',
@@ -136,10 +173,13 @@ export const translations = {
       seeResults: 'نتائج دیکھیں',
       done: 'مکمل',
       exit: 'باہر نکلیں',
+      summaryPerfect: 'مکمل نمبر۔ یہ سوالات اب طویل وقفے کے بعد دوبارہ آئیں گے۔',
+      summaryPartial: 'جو سوالات مشکل لگے وہ جلد دوبارہ آئیں گے، تاکہ جائزے کا شیڈول آپ کی اصل ضرورت کے مطابق ڈھل سکے۔',
     },
     common: {
       offline: 'آف لائن — محفوظ شدہ ڈیٹا استعمال ہو رہا ہے',
       language: 'زبان',
     },
+    content: contentUr,
   },
 };

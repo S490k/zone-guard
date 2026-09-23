@@ -181,7 +181,13 @@ Offline state is surfaced by a banner driven by `NetInfo`, keyed on `isInternetR
 ### D10 — Bilingual support and its RTL constraint
 English and Urdu translations cover the app's own interface. Locale is persisted and defaults to the device language when it is one of the two.
 
-**Two honest limitations.** React Native fixes layout direction at native startup, so switching to Urdu requires an app restart before the RTL layout applies; the toggle states this rather than appearing to fail. And alert titles and descriptions come from Firestore in whatever language the operator published — the app cannot translate operator content, only its own chrome.
+**Revised after user testing.** The first implementation used `I18nManager.forceRTL`, which mirrors the entire layout tree. On device this reordered the bottom tab bar and every icon row, so navigation moved when only the language should have. It also required an app restart to take effect.
+
+`forceRTL` was removed entirely. Direction is applied at the text level instead (`textAlign` plus `writingDirection`), with row direction flipped only where an icon leads a line of text. Navigation and controls therefore stay where the user expects, and the language switch is immediate with no restart — which removes the restart limitation rather than documenting it.
+
+The same round of testing showed tasks, kit items and quiz questions still rendering in English. The cause was structural: that copy was hardcoded in `constants/preparedness.ts`, so only the chrome had ever been translatable. The constants now hold **structure only** — id, priority, topic, correct answer — and all display text moved to `app/i18n/content.ts`, keyed by id. Adding a third language now touches no constant and no screen.
+
+**Remaining limitation.** Alert titles and descriptions come from Firestore in whatever language the operator published. The app cannot translate operator content, only its own copy.
 
 ---
 
@@ -192,7 +198,7 @@ Each entry requires a technical justification, not a scheduling one.
 | # | Limitation | Technical cause |
 |---|---|---|
 | L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server pipeline validated in the emulator only. |
-| L2 | Switching to Urdu requires an app restart before the layout flips | React Native fixes layout direction at native startup; `I18nManager.forceRTL` cannot take effect mid-session without a reload module. The toggle states this explicitly. |
+| ~~L2~~ | ~~Switching to Urdu requires an app restart~~ | **Resolved.** Dropping `forceRTL` in favour of text-level direction removed both the restart requirement and the unwanted layout mirroring. |
 | L3 | Alert titles and descriptions are not translated | They originate in Firestore in whatever language the operator published. Only the app's own interface can be localised client-side. |
 | L4 | Android blur uses a software implementation | Android exposes no native backdrop blur below API 31; `expo-blur` falls back to `dimezisBlurView`, which is explicitly opted into rather than silently degrading to a flat surface. |
 

@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
+import { rtlText } from '../i18n/rtl';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { useZones } from '@context/ZonesContext';
 import { useLanguage } from '@context/LanguageContext';
@@ -17,18 +18,18 @@ import { requestNotificationPermissions } from '@utils/fcmSetup';
 
 export const AlertsScreen: React.FC = () => {
   const { zones, source, isLoading } = useZones();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [testStatus, setTestStatus] = useState<string | null>(null);
 
   const handleTestAlert = async () => {
     const zone = zones[0];
     if (!zone) {
-      setTestStatus('No zones available to test against.');
+      setTestStatus(t('alerts.testNoZones'));
       return;
     }
 
     if (!(await requestNotificationPermissions())) {
-      setTestStatus('Notifications are turned off for ZoneGuard.');
+      setTestStatus(t('alerts.testNoPermission'));
       return;
     }
 
@@ -39,7 +40,7 @@ export const AlertsScreen: React.FC = () => {
       bypassDedup: true,
     });
     setTestStatus(
-      delivered ? `Test alert sent for ${zone.name}.` : 'Test alert could not be delivered.'
+      delivered ? t('alerts.testSent', { zone: zone.name }) : t('alerts.testFailed')
     );
   };
 
@@ -88,10 +89,12 @@ export const AlertsScreen: React.FC = () => {
       fontSize: theme.fontSize.xxxl,
       fontWeight: 'bold',
       marginBottom: theme.spacing.sm,
+      ...rtlText(isRTL),
     },
     subtitle: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.base,
+      ...rtlText(isRTL),
     },
     section: {
       marginBottom: theme.spacing.xl,
@@ -101,6 +104,7 @@ export const AlertsScreen: React.FC = () => {
       fontSize: theme.fontSize.lg,
       fontWeight: '600',
       marginBottom: theme.spacing.md,
+      ...rtlText(isRTL),
     },
     testButton: {
       backgroundColor: COLORS.accent,
@@ -116,6 +120,7 @@ export const AlertsScreen: React.FC = () => {
       fontSize: theme.fontSize.md,
       fontWeight: '600',
       textAlign: 'center',
+      ...rtlText(isRTL),
     },
     alertsList: {
       gap: theme.spacing.md,
@@ -142,21 +147,25 @@ export const AlertsScreen: React.FC = () => {
       fontSize: theme.fontSize.md,
       fontWeight: '600',
       flex: 1,
+      ...rtlText(isRTL),
     },
     alertDescription: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.sm,
       marginBottom: theme.spacing.sm,
+      ...rtlText(isRTL),
     },
     alertMeta: {
       color: COLORS.textTertiary,
       fontSize: theme.fontSize.xs,
+      ...rtlText(isRTL),
     },
     emptyState: {
       textAlign: 'center',
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.base,
       paddingVertical: theme.spacing.xl,
+      ...rtlText(isRTL),
     },
   });
 
@@ -224,8 +233,10 @@ export const AlertsScreen: React.FC = () => {
                     </View>
                     <Text style={styles.alertDescription}>{zone.description}</Text>
                     <Text style={styles.alertMeta}>
-                      {zone.radiusKm}km radius
-                      {zone.expiresAt ? ` • expires ${zone.expiresAt.toLocaleString()}` : ''}
+                      {t('alerts.radius', { radius: zone.radiusKm })}
+                      {zone.expiresAt
+                        ? t('alerts.expires', { date: zone.expiresAt.toLocaleString() })
+                        : ''}
                     </Text>
                   </View>
                 ))}

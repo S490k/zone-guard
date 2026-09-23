@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
+import { rtlText } from '../i18n/rtl';
 import { useLanguage } from '@context/LanguageContext';
 import { SUPPORTED_LOCALES, LOCALE_NAMES } from '../i18n/translations';
 
 export const LanguageToggle: React.FC = () => {
-  const { locale, setLocale, t, needsRestart } = useLanguage();
+  const { locale, setLocale, t, isRTL } = useLanguage();
 
   const styles = StyleSheet.create({
     row: { flexDirection: 'row', gap: theme.spacing.sm },
@@ -15,6 +16,7 @@ export const LanguageToggle: React.FC = () => {
       fontSize: theme.fontSize.sm,
       fontWeight: '600',
       marginBottom: theme.spacing.sm,
+      ...rtlText(isRTL),
     },
     option: {
       flex: 1,
@@ -26,11 +28,6 @@ export const LanguageToggle: React.FC = () => {
       minHeight: 44,
     },
     optionText: { fontSize: theme.fontSize.base, fontWeight: '600' },
-    restartNote: {
-      color: COLORS.alertHigh,
-      fontSize: theme.fontSize.xs,
-      marginTop: theme.spacing.sm,
-    },
   });
 
   return (
@@ -66,11 +63,6 @@ export const LanguageToggle: React.FC = () => {
           );
         })}
       </View>
-      {needsRestart && (
-        <Text style={styles.restartNote} accessibilityLiveRegion="polite">
-          Restart ZoneGuard to apply the right-to-left layout.
-        </Text>
-      )}
     </View>
   );
 };

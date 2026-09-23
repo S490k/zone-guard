@@ -15,13 +15,14 @@ import { TaskCard } from '@components/TaskCard';
 import { QuizRunner } from '@components/QuizRunner';
 import { useProgress } from '@context/ProgressContext';
 import { useLanguage } from '@context/LanguageContext';
-import { PREPAREDNESS_TASKS, QUIZ_QUESTIONS, QUIZ_TOPICS } from '@constants/preparedness';
+import { PREPAREDNESS_TASKS, QUIZ_QUESTIONS, QUIZ_TOPICS, QuizTopicId } from '@constants/preparedness';
+import { rtlText } from '../i18n/rtl';
 import { MASTERY_REPETITIONS } from '@utils/preparednessScore';
 
 export const PrepareScreen: React.FC = () => {
   const { progress, isTaskComplete, toggleTask } = useProgress();
-  const { t } = useLanguage();
-  const [activeTopic, setActiveTopic] = useState<string | null>(null);
+  const { t, isRTL } = useLanguage();
+  const [activeTopic, setActiveTopic] = useState<QuizTopicId | null>(null);
 
   const completedTasks = PREPAREDNESS_TASKS.filter((task) => isTaskComplete(task.id)).length;
 
@@ -61,10 +62,12 @@ export const PrepareScreen: React.FC = () => {
       fontSize: theme.fontSize.xxxl,
       fontWeight: 'bold',
       marginBottom: theme.spacing.sm,
+      ...rtlText(isRTL),
     },
     subtitle: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.base,
+      ...rtlText(isRTL),
     },
     section: {
       marginBottom: theme.spacing.xl,
@@ -74,11 +77,13 @@ export const PrepareScreen: React.FC = () => {
       fontSize: theme.fontSize.lg,
       fontWeight: '600',
       marginBottom: theme.spacing.md,
+      ...rtlText(isRTL),
     },
     progressText: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.sm,
       marginBottom: theme.spacing.md,
+      ...rtlText(isRTL),
     },
     tasksList: {
       gap: theme.spacing.sm,
@@ -100,10 +105,12 @@ export const PrepareScreen: React.FC = () => {
       fontSize: theme.fontSize.md,
       fontWeight: '600',
       marginBottom: theme.spacing.xs,
+      ...rtlText(isRTL),
     },
     quizMeta: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.sm,
+      ...rtlText(isRTL),
     },
   });
 
@@ -133,8 +140,15 @@ export const PrepareScreen: React.FC = () => {
               {PREPAREDNESS_TASKS.map((task) => (
                 <TaskCard
                   key={task.id}
-                  task={{ ...task, completed: isTaskComplete(task.id) }}
+                  task={{
+                    id: task.id,
+                    priority: task.priority,
+                    title: t(`content.tasks.${task.id}.title`),
+                    description: t(`content.tasks.${task.id}.description`),
+                    completed: isTaskComplete(task.id),
+                  }}
                   onToggle={toggleTask}
+                  isRTL={isRTL}
                 />
               ))}
             </View>
@@ -163,9 +177,9 @@ export const PrepareScreen: React.FC = () => {
                     ]}
                     onPress={() => setActiveTopic(topic)}
                     accessibilityRole="button"
-                    accessibilityLabel={`${topic} quiz, ${mastered} of ${questions.length} mastered`}
+                    accessibilityLabel={`${t(`content.topics.${topic}`)}, ${mastered}/${questions.length}`}
                   >
-                    <Text style={styles.quizTitle}>{topic}</Text>
+                    <Text style={styles.quizTitle}>{t(`content.topics.${topic}`)}</Text>
                     <Text style={styles.quizMeta}>
                       {t('prepare.questionsMastered', {
                         done: mastered,

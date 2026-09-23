@@ -7,6 +7,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { COLORS } from '@constants/colors';
+import { rtlText } from '../i18n/rtl';
 import theme from '@theme/colors';
 
 export interface Task {
@@ -23,6 +24,7 @@ interface TaskCardProps {
   onPress?: (taskId: string) => void;
   onToggle?: (taskId: string) => void;
   style?: ViewStyle;
+  isRTL?: boolean;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -30,6 +32,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onPress,
   onToggle,
   style,
+  isRTL = false,
 }) => {
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
@@ -52,7 +55,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       borderLeftColor: getPriorityColor(task.priority),
       padding: theme.spacing.md,
       marginBottom: theme.spacing.md,
-      flexDirection: 'row',
+      flexDirection: isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       // WCAG 2.1 AA minimum target size; the row is the touch target.
       minHeight: 44,
@@ -65,7 +68,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       borderWidth: 2,
       borderColor: task.completed ? COLORS.success : COLORS.border,
       backgroundColor: task.completed ? COLORS.success : 'transparent',
-      marginRight: theme.spacing.md,
+      marginRight: isRTL ? 0 : theme.spacing.md,
+      marginLeft: isRTL ? theme.spacing.md : 0,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -83,10 +87,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       fontWeight: '600',
       marginBottom: theme.spacing.xs,
       textDecorationLine: task.completed ? 'line-through' : 'none',
+      ...rtlText(isRTL),
     },
     description: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.sm,
+      ...rtlText(isRTL),
     },
   });
 
