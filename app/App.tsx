@@ -15,6 +15,7 @@ import HomeScreen from '@screens/HomeScreen';
 import PrepareScreen from '@screens/PrepareScreen';
 import AlertsScreen from '@screens/AlertsScreen';
 import EmergencyInfoScreen from '@screens/EmergencyInfoScreen';
+import LeaderboardScreen from '@screens/LeaderboardScreen';
 
 import { setupPushNotifications, setupNotificationListeners } from '@utils/fcmSetup';
 import { useAuth } from '@hooks/useAuth';
@@ -51,6 +52,7 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Prepare: 'list',
   Alerts: 'notifications',
   EmergencyInfo: 'information-circle',
+  Leaderboard: 'trophy',
 };
 
 function TabNavigator() {
@@ -78,6 +80,11 @@ function TabNavigator() {
         name="EmergencyInfo"
         component={EmergencyInfoScreen}
         options={{ title: t('tabs.emergencyInfo') }}
+      />
+      <Tab.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{ title: t('tabs.leaderboard') }}
       />
     </Tab.Navigator>
   );

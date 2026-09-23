@@ -158,6 +158,62 @@ describeWithEmulator('alertLog rules', () => {
   });
 });
 
+describeWithEmulator('leaderboard rules', () => {
+  const validEntry = { score: 72, handle: 'Guardian A3F2', updatedAt: new Date() };
+
+  it('lets a signed-in user read the board', async () => {
+    const db = testEnv.authenticatedContext(OWNER).firestore();
+    await assertSucceeds(getDocs(collection(db, 'leaderboard')));
+  });
+
+  it('lets a user publish their own score', async () => {
+    const db = testEnv.authenticatedContext(OWNER).firestore();
+    await assertSucceeds(setDoc(doc(db, 'leaderboard', OWNER), validEntry));
+  });
+
+  it('denies writing another user entry', async () => {
+    const db = testEnv.authenticatedContext(INTRUDER).firestore();
+    await assertFails(setDoc(doc(db, 'leaderboard', OWNER), validEntry));
+  });
+
+  it('denies a score above the valid range', async () => {
+    const db = testEnv.authenticatedContext(OWNER).firestore();
+    await assertFails(setDoc(doc(db, 'leaderboard', OWNER), { ...validEntry, score: 9999 }));
+  });
+
+  it('denies a negative score', async () => {
+    const db = testEnv.authenticatedContext(OWNER).firestore();
+    await assertFails(setDoc(doc(db, 'leaderboard', OWNER), { ...validEntry, score: -1 }));
+  });
+
+  it('denies a non-integer score', async () => {
+    const db = testEnv.authenticatedContext(OWNER).firestore();
+    await assertFails(setDoc(doc(db, 'leaderboard', OWNER), { ...validEntry, score: 72.5 }));
+  });
+
+  // The document is world-readable, so extra fields would leak whatever they
+  // contain to every user of the app.
+  it('denies smuggling extra fields into a public document', async () => {
+    const db = testEnv.authenticatedContext(OWNER).firestore();
+    await assertFails(
+      setDoc(doc(db, 'leaderboard', OWNER), {
+        ...validEntry,
+        lastKnownLocation: { latitude: 30.6987, longitude: 70.8503 },
+      })
+    );
+  });
+
+  it('denies an over-long handle', async () => {
+    const db = testEnv.authenticatedContext(OWNER).firestore();
+    await assertFails(setDoc(doc(db, 'leaderboard', OWNER), { ...validEntry, handle: 'x'.repeat(64) }));
+  });
+
+  it('denies an unauthenticated read', async () => {
+    const db = testEnv.unauthenticatedContext().firestore();
+    await assertFails(getDocs(collection(db, 'leaderboard')));
+  });
+});
+
 describeWithEmulator('unknown collections', () => {
   it('denies access to collections the rules do not name', async () => {
     const db = testEnv.authenticatedContext(OWNER).firestore();

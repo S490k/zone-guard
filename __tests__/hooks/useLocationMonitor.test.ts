@@ -126,7 +126,7 @@ describe('useLocationMonitor', () => {
    */
   it('does not resubscribe when the zone list changes', async () => {
     const watcher = captureWatcher();
-    const { rerender } = renderHook(({ zones }) => useLocationMonitor(zones), {
+    const { rerender } = renderHook(({ zones }: { zones: DisasterZone[] }) => useLocationMonitor(zones), {
       initialProps: { zones: [taunsa] },
     });
 
@@ -140,7 +140,7 @@ describe('useLocationMonitor', () => {
 
   it('evaluates positions against the latest zone list', async () => {
     const watcher = captureWatcher();
-    const { result, rerender } = renderHook(({ zones }) => useLocationMonitor(zones), {
+    const { result, rerender } = renderHook(({ zones }: { zones: DisasterZone[] }) => useLocationMonitor(zones), {
       initialProps: { zones: [] as DisasterZone[] },
     });
 

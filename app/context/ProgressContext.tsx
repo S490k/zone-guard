@@ -18,6 +18,7 @@ import {
 } from '@constants/preparedness';
 import { calculatePreparednessScore, ScoreBreakdown } from '@utils/preparednessScore';
 import { useAuth } from '@hooks/useAuth';
+import { publishScore } from '@utils/leaderboard';
 
 export interface ProgressContextValue {
   progress: StoredProgress;
@@ -155,6 +156,13 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     () => calculatePreparednessScore(progress, TOTALS),
     [progress]
   );
+
+  // Mirrored to the public leaderboard collection rather than read from the
+  // user document, which is owner-only because it holds location history.
+  useEffect(() => {
+    if (!user || isLoading) return;
+    publishScore(user.uid, score.total);
+  }, [user, isLoading, score.total]);
 
   const value = useMemo<ProgressContextValue>(
     () => ({

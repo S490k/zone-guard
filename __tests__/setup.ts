@@ -98,5 +98,10 @@ jest.mock('firebase/firestore', () => ({
   setDoc: jest.fn(async () => undefined),
   updateDoc: jest.fn(async () => undefined),
   getDoc: jest.fn(async () => ({ exists: () => false, data: () => undefined })),
+  getDocs: jest.fn(async () => ({ docs: [] })),
+  deleteDoc: jest.fn(async () => undefined),
+  orderBy: jest.fn(() => ({})),
+  limit: jest.fn(() => ({})),
+  writeBatch: jest.fn(() => ({ set: jest.fn(), update: jest.fn(), commit: jest.fn(async () => undefined) })),
   Timestamp: { now: jest.fn(() => ({ toMillis: () => Date.now() })) },
 }));

@@ -18,6 +18,7 @@ export const translations = {
       prepare: 'Prepare',
       alerts: 'Alerts',
       emergencyInfo: 'Emergency Info',
+      leaderboard: 'Ranking',
     },
     home: {
       title: 'Dashboard',
@@ -91,6 +92,15 @@ export const translations = {
       summaryPerfect: 'Full marks. These questions will return on a longer interval.',
       summaryPartial: 'Questions you found difficult will come back sooner, so the review schedule adapts to what you actually struggle with.',
     },
+    leaderboard: {
+      title: 'Ranking',
+      subtitle: 'Top preparedness scores',
+      loading: 'Loading rankings…',
+      empty: 'No rankings yet. Complete tasks to appear here.',
+      you: 'You',
+      yourScore: 'Your score is {{score}}. Keep going to reach the top ten.',
+      rowLabel: 'Rank {{rank}}, {{handle}}, {{score}} points',
+    },
     common: {
       offline: 'Offline — using cached data',
       language: 'Language',
@@ -103,6 +113,7 @@ export const translations = {
       prepare: 'تیاری',
       alerts: 'الرٹس',
       emergencyInfo: 'ہنگامی معلومات',
+      leaderboard: 'درجہ بندی',
     },
     home: {
       title: 'ڈیش بورڈ',
@@ -175,6 +186,15 @@ export const translations = {
       exit: 'باہر نکلیں',
       summaryPerfect: 'مکمل نمبر۔ یہ سوالات اب طویل وقفے کے بعد دوبارہ آئیں گے۔',
       summaryPartial: 'جو سوالات مشکل لگے وہ جلد دوبارہ آئیں گے، تاکہ جائزے کا شیڈول آپ کی اصل ضرورت کے مطابق ڈھل سکے۔',
+    },
+    leaderboard: {
+      title: 'درجہ بندی',
+      subtitle: 'تیاری کے بہترین اسکور',
+      loading: 'درجہ بندی لوڈ ہو رہی ہے…',
+      empty: 'ابھی کوئی درجہ بندی نہیں۔ کام مکمل کریں تاکہ یہاں نظر آئیں۔',
+      you: 'آپ',
+      yourScore: 'آپ کا اسکور {{score}} ہے۔ پہلے دس میں آنے کے لیے کوشش جاری رکھیں۔',
+      rowLabel: 'درجہ {{rank}}، {{handle}}، {{score}} پوائنٹس',
     },
     common: {
       offline: 'آف لائن — محفوظ شدہ ڈیٹا استعمال ہو رہا ہے',

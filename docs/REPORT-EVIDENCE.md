@@ -144,6 +144,15 @@ Network latency is excluded by design: with Cloud Functions unavailable (D1),
 no alert depends on a round-trip. The delivery path is entirely on-device, which
 is why it is fast and why it works offline.
 
+### D11 — Leaderboard kept out of the user document
+Step 6 asks for a top-ten ranking, and the roadmap's sketch queries the `users` collection ordered by score. That is not safe here: `users/{uid}` holds **location history**, and the rules restrict it to its owner precisely for that reason. Ranking over it would have required opening every user's movements to every other user. The roadmap also suggests displaying email addresses, which would place personal data in a world-readable document.
+
+Scores therefore live in a separate `leaderboard/{uid}` collection containing only a score, a derived handle and a timestamp — never location. Rules pin the shape with `hasOnly`, so a client cannot smuggle extra fields into a document everyone can read, and constrain the score to an integer in 0–100.
+
+Identity is a **stable non-identifying handle derived from the uid** (`Guardian A3F2`). Accounts are anonymous so there is no name to show, and publishing the raw uid would expose the key used for the owner-only user document.
+
+**Limitation:** scores are client-authored. The rules bound the range but cannot verify a score reflects real progress — that needs a server-side recomputation, which the Spark plan rules out. Recorded as L5.
+
 ---
 
 ## 4a. Device verification — Phase 1
@@ -256,6 +265,7 @@ Each entry requires a technical justification, not a scheduling one.
 | L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server pipeline validated in the emulator only. |
 | ~~L2~~ | ~~Switching to Urdu requires an app restart~~ | **Resolved.** Dropping `forceRTL` in favour of text-level direction removed both the restart requirement and the unwanted layout mirroring. |
 | L3 | Alert titles and descriptions are not translated | They originate in Firestore in whatever language the operator published. Only the app's own interface can be localised client-side. |
+| L5 | Leaderboard scores are self-reported and not server-verified | Rules constrain the value to an integer in 0–100, but confirming it matches real progress requires recomputation in a Cloud Function, which the Spark plan cannot deploy (see D1). |
 | L4 | Android blur uses a software implementation | Android exposes no native backdrop blur below API 31; `expo-blur` falls back to `dimezisBlurView`, which is explicitly opted into rather than silently degrading to a flat surface. |
 
 ---
@@ -271,6 +281,10 @@ Each entry requires a technical justification, not a scheduling one.
 | 2 | `424bca7` | Live Firestore zones rendered; `ZonesProvider` introduced as the single source. |
 | 2a | `e06f92f` | Geofence layer and UI disagreed on an empty alert set; cache now records `syncedAt`. |
 | 3 | `b4f6868` | Progress persisted offline-first; SM-2 wired to a real quiz; score derived from actual completions. |
+| 4a | `ff87fca` | Accessibility annotations, measured contrast fix, 44pt touch targets. |
+| 4b | `1d14828` | Real blur and map, offline indicator, English/Urdu. |
+| 4c | `5ecf4f3` | RTL scoped to text after device testing; preparedness copy moved into translations. |
+| 5 | `c15c393` | Coverage 18.8% → 93%; stub tests replaced; latency measured. |
 
 ### Phase 1 detail — blocking defects resolved
 

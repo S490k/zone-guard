@@ -31,6 +31,28 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /**
+     * Publicly readable scores, kept apart from /users precisely because that
+     * document holds location history. A leaderboard built on /users would have
+     * required opening every user's movements to every other user.
+     *
+     * Each entry is writable only by its owner, and the shape is pinned so a
+     * client cannot smuggle extra fields into a world-readable document.
+     */
+    match /leaderboard/{uid} {
+      allow read: if isSignedIn();
+
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['score', 'handle', 'updatedAt'])
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100
+        && request.resource.data.handle is string
+        && request.resource.data.handle.size() <= 32;
+
+      allow delete: if isOwner(uid);
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
