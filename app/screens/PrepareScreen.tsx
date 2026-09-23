@@ -4,86 +4,43 @@ import {
   ScrollView,
   Text,
   StyleSheet,
+  TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
-import { TaskCard, Task } from '@components/TaskCard';
+import { TaskCard } from '@components/TaskCard';
+import { QuizRunner } from '@components/QuizRunner';
+import { useProgress } from '@context/ProgressContext';
+import { PREPAREDNESS_TASKS, QUIZ_QUESTIONS, QUIZ_TOPICS } from '@constants/preparedness';
+import { MASTERY_REPETITIONS } from '@utils/preparednessScore';
 
 export const PrepareScreen: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Create Emergency Contact List',
-      description: 'Add 3-5 emergency contacts',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: '2',
-      title: 'Prepare Go-Bag',
-      description: 'Pack essential items (documents, cash, medications)',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: '3',
-      title: 'Identify Safe Meeting Point',
-      description: 'Choose a location to meet family members',
-      completed: false,
-      priority: 'medium',
-    },
-    {
-      id: '4',
-      title: 'Review Emergency Procedures',
-      description: 'Read through earthquake/flood procedures',
-      completed: false,
-      priority: 'medium',
-    },
-    {
-      id: '5',
-      title: 'Update Insurance Information',
-      description: 'Ensure your insurance details are current',
-      completed: false,
-      priority: 'low',
-    },
-  ]);
+  const { progress, isTaskComplete, toggleTask } = useProgress();
+  const [activeTopic, setActiveTopic] = useState<string | null>(null);
 
-  const [quizzes, setQuizzes] = useState<any[]>([
-    {
-      id: 'quiz-1',
-      title: 'Earthquake Safety',
-      questions: 5,
-      completed: false,
-      score: null,
-    },
-    {
-      id: 'quiz-2',
-      title: 'Flood Preparedness',
-      questions: 5,
-      completed: false,
-      score: null,
-    },
-    {
-      id: 'quiz-3',
-      title: 'First Aid Basics',
-      questions: 5,
-      completed: false,
-      score: null,
-    },
-  ]);
+  const completedTasks = PREPAREDNESS_TASKS.filter((task) => isTaskComplete(task.id)).length;
 
-  const handleTaskToggle = (taskId: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
-    );
-  };
+  const topicSummaries = QUIZ_TOPICS.map((topic) => {
+    const questions = QUIZ_QUESTIONS.filter((question) => question.topic === topic);
+    const mastered = questions.filter(
+      (question) => (progress.quizStates[question.id]?.repetitions ?? 0) >= MASTERY_REPETITIONS
+    ).length;
 
-  const completedTasks = tasks.filter((t) => t.completed).length;
-  const completedQuizzes = quizzes.filter((q) => q.completed).length;
+    // The soonest scheduled review across the topic's questions.
+    const dueDates = questions
+      .map((question) => progress.quizStates[question.id]?.nextReviewDate)
+      .filter((date): date is string => Boolean(date))
+      .sort();
+
+    return { topic, questions, mastered, nextReview: dueDates[0] };
+  });
+
+  const completedQuizzes = topicSummaries.filter(
+    (summary) => summary.mastered === summary.questions.length
+  ).length;
 
   const styles = StyleSheet.create({
     container: {
@@ -162,15 +119,15 @@ export const PrepareScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preparation Tasks</Text>
           <Text style={styles.progressText}>
-            {completedTasks} of {tasks.length} completed
+            {completedTasks} of {PREPAREDNESS_TASKS.length} completed
           </Text>
           <GlassmorphicCard>
             <View style={styles.tasksList}>
-              {tasks.map((task) => (
+              {PREPAREDNESS_TASKS.map((task) => (
                 <TaskCard
                   key={task.id}
-                  task={task}
-                  onToggle={handleTaskToggle}
+                  task={{ ...task, completed: isTaskComplete(task.id) }}
+                  onToggle={toggleTask}
                 />
               ))}
             </View>
@@ -181,27 +138,56 @@ export const PrepareScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Knowledge Quizzes</Text>
           <Text style={styles.progressText}>
-            {completedQuizzes} of {quizzes.length} completed
+            {completedQuizzes} of {topicSummaries.length} mastered
           </Text>
           <GlassmorphicCard>
             <View style={styles.quizGrid}>
-              {quizzes.map((quiz) => (
-                <View key={quiz.id} style={styles.quizCard}>
-                  <Text style={styles.quizTitle}>{quiz.title}</Text>
-                  <Text style={styles.quizMeta}>
-                    {quiz.questions} questions • {quiz.completed ? '✓ Completed' : 'Not started'}
-                  </Text>
-                  {quiz.completed && quiz.score !== null && (
-                    <Text style={[styles.quizMeta, { color: COLORS.success }]}>
-                      Score: {quiz.score}%
+              {topicSummaries.map(({ topic, questions, mastered, nextReview }) => {
+                const isMastered = mastered === questions.length;
+                return (
+                  <TouchableOpacity
+                    key={topic}
+                    style={[
+                      styles.quizCard,
+                      { borderLeftColor: isMastered ? COLORS.success : COLORS.accent },
+                    ]}
+                    onPress={() => setActiveTopic(topic)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${topic} quiz, ${mastered} of ${questions.length} mastered`}
+                  >
+                    <Text style={styles.quizTitle}>{topic}</Text>
+                    <Text style={styles.quizMeta}>
+                      {questions.length} questions • {mastered}/{questions.length} mastered
                     </Text>
-                  )}
-                </View>
-              ))}
+                    {nextReview && (
+                      <Text style={styles.quizMeta}>
+                        Next review {new Date(nextReview).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </GlassmorphicCard>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={activeTopic !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setActiveTopic(null)}
+      >
+        <SafeAreaView style={styles.container} edges={['top']}>
+          {activeTopic && (
+            <QuizRunner
+              topic={activeTopic}
+              questions={QUIZ_QUESTIONS.filter((question) => question.topic === activeTopic)}
+              onClose={() => setActiveTopic(null)}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };

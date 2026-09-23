@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   ScrollView,
@@ -9,92 +9,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
-import { TaskCard, Task } from '@components/TaskCard';
+import { TaskCard } from '@components/TaskCard';
+import { useProgress } from '@context/ProgressContext';
+import { EMERGENCY_KIT_ITEMS } from '@constants/preparedness';
 
 export const EmergencyInfoScreen: React.FC = () => {
-  const [kitItems, setKitItems] = useState<Task[]>([
-    {
-      id: 'kit-1',
-      title: 'Water',
-      description: '3-day supply (1 gallon per person per day)',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: 'kit-2',
-      title: 'Non-perishable Food',
-      description: '3-day supply (high-calorie items)',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: 'kit-3',
-      title: 'First Aid Kit',
-      description: 'Bandages, medications, antiseptic',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: 'kit-4',
-      title: 'Flashlight & Batteries',
-      description: 'Extra batteries included',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: 'kit-5',
-      title: 'Radio (Battery/Hand-crank)',
-      description: 'For emergency broadcasts',
-      completed: false,
-      priority: 'medium',
-    },
-    {
-      id: 'kit-6',
-      title: 'Medications & Glasses',
-      description: '7-day supply of prescription medications',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: 'kit-7',
-      title: 'Documents & Cash',
-      description: 'ID, insurance, cash in waterproof bag',
-      completed: false,
-      priority: 'high',
-    },
-    {
-      id: 'kit-8',
-      title: 'Personal Hygiene Items',
-      description: 'Toiletries, feminine products, diapers',
-      completed: false,
-      priority: 'medium',
-    },
-    {
-      id: 'kit-9',
-      title: 'Phone Charger & Power Bank',
-      description: 'Multiple charging options',
-      completed: false,
-      priority: 'medium',
-    },
-    {
-      id: 'kit-10',
-      title: 'Emergency Contact Card',
-      description: 'Written copy of important numbers',
-      completed: false,
-      priority: 'medium',
-    },
-  ]);
+  const { isKitItemComplete, toggleKitItem } = useProgress();
 
-  const handleItemToggle = (itemId: string) => {
-    setKitItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === itemId ? { ...item, completed: !item.completed } : item
-      )
-    );
-  };
-
-  const completedItems = kitItems.filter((i) => i.completed).length;
-  const completionPercentage = Math.round((completedItems / kitItems.length) * 100);
+  const completedItems = EMERGENCY_KIT_ITEMS.filter((item) =>
+    isKitItemComplete(item.id)
+  ).length;
+  const completionPercentage = Math.round(
+    (completedItems / EMERGENCY_KIT_ITEMS.length) * 100
+  );
 
   const resources = [
     {
@@ -232,7 +159,7 @@ export const EmergencyInfoScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Household Emergency Kit</Text>
           <View style={styles.progressContainer}>
             <Text style={styles.progressText}>
-              Completion: {completedItems}/{kitItems.length} ({completionPercentage}%)
+              Completion: {completedItems}/{EMERGENCY_KIT_ITEMS.length} ({completionPercentage}%)
             </Text>
             <View style={styles.progressBar}>
               <View
@@ -245,11 +172,11 @@ export const EmergencyInfoScreen: React.FC = () => {
           </View>
           <GlassmorphicCard>
             <View>
-              {kitItems.map((item) => (
+              {EMERGENCY_KIT_ITEMS.map((item) => (
                 <TaskCard
                   key={item.id}
-                  task={item}
-                  onToggle={handleItemToggle}
+                  task={{ ...item, completed: isKitItemComplete(item.id) }}
+                  onToggle={toggleKitItem}
                 />
               ))}
             </View>

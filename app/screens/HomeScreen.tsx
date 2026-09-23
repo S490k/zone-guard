@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   ScrollView,
@@ -10,6 +10,8 @@ import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { useLocationMonitor } from '@hooks/useLocationMonitor';
 import { useZones, ZonesSource } from '@context/ZonesContext';
+import { useProgress } from '@context/ProgressContext';
+import { SCORE_WEIGHTS } from '@utils/preparednessScore';
 import { SEVERITY_COLORS } from '@constants/zones';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { StressIndicator } from '@components/StressIndicator';
@@ -24,13 +26,7 @@ const SOURCE_LABEL: Record<ZonesSource, string> = {
 export const HomeScreen: React.FC = () => {
   const { zones, source, isLoading } = useZones();
   const { location, activeZones, error } = useLocationMonitor(zones);
-  const [preparednessScore, setPreparednessScore] = useState(45);
-
-  useEffect(() => {
-    // Initialize preparedness score from Firestore
-    // TODO: Fetch from db
-    setPreparednessScore(45);
-  }, []);
+  const { score } = useProgress();
 
   const styles = StyleSheet.create({
     container: {
@@ -145,9 +141,10 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Preparedness Score</Text>
           <GlassmorphicCard>
             <View style={styles.scoreContainer}>
-              <StressIndicator score={preparednessScore} size="lg" />
+              <StressIndicator score={score.total} size="lg" />
               <Text style={styles.statusText}>
-                Complete more tasks and quizzes to improve your score
+                Tasks {score.tasks}/{SCORE_WEIGHTS.tasks} · Kit {score.kit}/{SCORE_WEIGHTS.kit} ·
+                Quiz {score.quiz}/{SCORE_WEIGHTS.quiz}
               </Text>
             </View>
           </GlassmorphicCard>

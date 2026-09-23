@@ -86,6 +86,20 @@ The provider hydrates from cache *before* the listener resolves, so the UI is po
 
 `DISASTER_ZONES` remains reachable only as `zoneCache`'s fallback when Firestore has returned nothing and no cache exists.
 
+### D6 — Offline-first progress persistence written by hand
+Task, kit and quiz state lived in `useState` with hardcoded seed data and was lost on every reload; the preparedness score was hardcoded to `45` behind a `TODO`.
+
+The Firestore JS SDK offers no offline cache under React Native — `persistentLocalCache` depends on IndexedDB, which RN does not provide — so the usual answer of "enable offline persistence" is unavailable. Progress is therefore mirrored to `AsyncStorage` explicitly: local writes happen first so the UI never waits on the network, and a Firestore listener reconciles across launches. A `pendingWrite` guard stops the listener's own echo from overwriting an edit made since the write was issued.
+
+Scoring lives in `app/utils/preparednessScore.ts` as a pure function over a progress snapshot, deliberately separated from storage so it can be verified against fixtures. Weighting is 40% tasks, 40% kit, 20% quiz mastery.
+
+**Mastery is defined as two successful SM-2 repetitions, not one correct answer.** A single correct response demonstrates recognition; recall across separate sessions is what spaced repetition actually measures, and scoring a first-attempt answer as mastery would have made the quiz component trivially maximisable.
+
+### D7 — SM-2 connected to a real quiz
+`sm2.ts` was fully implemented and unit-tested but imported by nothing: the quizzes were three hardcoded cards with `questions: 5` and no questions. A `QuizRunner` now drives nine questions across the three existing topics, and answer **latency** feeds `calculateQualityScore`, so a slow correct answer schedules a sooner review than an immediate one — the graded-recall behaviour SM-2 is designed around, which a simple correct/incorrect flag would discard.
+
+**Self-review finding.** The first implementation of the progress provider called `setProgress` from inside a `setProgress` updater, running storage and network writes during React's render phase. Restructured so mutations only compute the next state and a dedicated effect performs persistence after commit, with a ref distinguishing a local edit from a remote snapshot or the initial load.
+
 ### D4 — Zones mirrored to device storage
 The same context boundary means a live Firestore listener is invisible to the background task — this is why the original task still read the hardcoded `DISASTER_ZONES`. Zones are now cached to `AsyncStorage` (`app/utils/zoneCache.ts`) whenever the listener fires, with the bundled list as fallback. This doubles as the offline source.
 
@@ -166,6 +180,11 @@ Each entry requires a technical justification, not a scheduling one.
 |---|---|---|
 | 0 | `122f2fd` | Baseline commit of as-received project; git initialised. |
 | 1 | `4921a03` | All five blocking defects (B1–B5) resolved. See below. |
+| 1a | `f6805f2`, `4f5ef00` | Concurrent permission requests read as denied; Settings remediation surfaced. |
+| 1b | `cfc6017` | Firestore transport forced to long polling; transient Core Location errors reclassified. |
+| 2 | `424bca7` | Live Firestore zones rendered; `ZonesProvider` introduced as the single source. |
+| 2a | `e06f92f` | Geofence layer and UI disagreed on an empty alert set; cache now records `syncedAt`. |
+| 3 | `0a1e4f9` | Progress persisted offline-first; SM-2 wired to a real quiz; score derived from actual completions. |
 
 ### Phase 1 detail — blocking defects resolved
 

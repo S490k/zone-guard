@@ -18,6 +18,7 @@ import EmergencyInfoScreen from '@screens/EmergencyInfoScreen';
 import { setupPushNotifications, setupNotificationListeners } from '@utils/fcmSetup';
 import { useAuth } from '@hooks/useAuth';
 import { ZonesProvider } from '@context/ZonesContext';
+import { ProgressProvider } from '@context/ProgressContext';
 // Importing this file registers the background tasks with TaskManager (must happen at startup).
 import {
   startBackgroundLocationTracking,
@@ -147,13 +148,15 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <ZonesProvider>
-        {hasSeenOnboarding ? (
-          <NavigationContainer theme={navigationTheme}>
-            <TabNavigator />
-          </NavigationContainer>
-        ) : (
-          <OnboardingScreen onComplete={completeOnboarding} />
-        )}
+        <ProgressProvider>
+          {hasSeenOnboarding ? (
+            <NavigationContainer theme={navigationTheme}>
+              <TabNavigator />
+            </NavigationContainer>
+          ) : (
+            <OnboardingScreen onComplete={completeOnboarding} />
+          )}
+        </ProgressProvider>
       </ZonesProvider>
     </SafeAreaProvider>
   );
