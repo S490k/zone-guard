@@ -256,6 +256,17 @@ npm run test:rules
 
 ---
 
+### D12 — Android map crash and its fix
+The first Android build terminated the moment location permission was granted. The cause was platform-divergent behaviour in a single component: `GeofenceMap` renders `MapView` with `PROVIDER_DEFAULT`, which resolves to **Apple Maps on iOS and Google Maps on Android**. Google Maps aborts the process natively when no API key is configured, and a native abort cannot be intercepted by a JavaScript error boundary.
+
+The sequence explains why it looked like a permission bug: the app started correctly and displayed the map's "waiting for location" placeholder. Granting permission produced a fix, which swapped the placeholder for a real `MapView`, which mounted Google Maps, which aborted. The crash followed the permission grant but was not caused by it.
+
+Resolved by checking for an API key at module scope and refusing to mount the map without one, falling back to a textual position and zone count. This is a guard rather than a workaround: a native crash has to be prevented, not caught.
+
+Recorded as L6.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
@@ -265,6 +276,7 @@ Each entry requires a technical justification, not a scheduling one.
 | L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server pipeline validated in the emulator only. |
 | ~~L2~~ | ~~Switching to Urdu requires an app restart~~ | **Resolved.** Dropping `forceRTL` in favour of text-level direction removed both the restart requirement and the unwanted layout mirroring. |
 | L3 | Alert titles and descriptions are not translated | They originate in Firestore in whatever language the operator published. Only the app's own interface can be localised client-side. |
+| L6 | Map view is unavailable on Android | `react-native-maps` renders Google Maps on Android, which requires a billed Google Cloud API key. iOS uses Apple Maps and needs none. The Android build shows position and zone count as text instead; **zone monitoring and alerting are unaffected**, since the map only ever visualised them. Adding a key to `app.json` restores the map with no code change. |
 | L5 | Leaderboard scores are self-reported and not server-verified | Rules constrain the value to an integer in 0–100, but confirming it matches real progress requires recomputation in a Cloud Function, which the Spark plan cannot deploy (see D1). |
 | L4 | Android blur uses a software implementation | Android exposes no native backdrop blur below API 31; `expo-blur` falls back to `dimezisBlurView`, which is explicitly opted into rather than silently degrading to a flat surface. |
 

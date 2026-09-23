@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -70,7 +71,21 @@ function TabNavigator() {
         tabBarStyle: {
           backgroundColor: COLORS.surfaceOpaque,
           borderTopColor: COLORS.border,
+          // Android's gesture bar sits tighter under the tab bar than iOS's
+          // home indicator, so the row needs explicit room to avoid clipping.
+          height: Platform.OS === 'android' ? 68 : undefined,
+          paddingTop: 6,
+          paddingBottom: Platform.OS === 'android' ? 10 : undefined,
         },
+        // Five tabs leave roughly 72dp each on a narrow screen. At the default
+        // size the longer labels ellipsise; fixed scaling keeps that true
+        // regardless of the device's font-size accessibility setting.
+        tabBarLabelStyle: {
+          fontSize: 10,
+          lineHeight: 13,
+        },
+        tabBarAllowFontScaling: false,
+        tabBarItemStyle: { paddingHorizontal: 2 },
       })}
     >
       <Tab.Screen name="Dashboard" component={HomeScreen} options={{ title: t('tabs.dashboard') }} />

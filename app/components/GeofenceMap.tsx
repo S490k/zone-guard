@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ViewStyle, Animated, Easing, Platform } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import Constants from 'expo-constants';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { DisasterZone, SEVERITY_COLORS } from '@constants/zones';
@@ -12,6 +13,16 @@ interface GeofenceMapProps {
   userLon?: number;
   zones?: DisasterZone[];
 }
+
+/**
+ * iOS renders Apple Maps, which needs no credentials. Android renders Google
+ * Maps, which terminates the process natively if no API key is present — a
+ * crash no JS error boundary can intercept, so the view must not be mounted
+ * at all. Checked once at module scope; it cannot change while running.
+ */
+const canRenderMap =
+  Platform.OS !== 'android' ||
+  Boolean((Constants.expoConfig as any)?.android?.config?.googleMaps?.apiKey);
 
 /** Hex to rgba, so zone fills can reuse the severity palette at low opacity. */
 function withAlpha(hex: string, alpha: number): string {
@@ -67,6 +78,19 @@ export const GeofenceMap: React.FC<GeofenceMapProps> = ({
       textAlign: 'center',
       paddingHorizontal: theme.spacing.lg,
     },
+    coordinates: {
+      color: COLORS.textPrimary,
+      fontSize: theme.fontSize.xl,
+      fontWeight: 'bold',
+      marginBottom: theme.spacing.sm,
+    },
+    mapNote: {
+      color: COLORS.textTertiary,
+      fontSize: theme.fontSize.xs,
+      textAlign: 'center',
+      paddingHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+    },
     pulseWrapper: {
       position: 'absolute',
       top: 0,
@@ -91,6 +115,32 @@ export const GeofenceMap: React.FC<GeofenceMapProps> = ({
       <View style={[styles.container, style]}>
         <View style={styles.placeholder}>
           <Text style={styles.placeholderText}>{t('home.waitingLocation')}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Without a usable map provider, show the position and zone count in text.
+  // Monitoring is unaffected: the map only ever visualised it.
+  if (!canRenderMap) {
+    return (
+      <View
+        style={[styles.container, style]}
+        accessible
+        accessibilityLabel={t('home.mapUnavailableA11y', {
+          latitude: userLat.toFixed(3),
+          longitude: userLon.toFixed(3),
+          count: zones.length,
+        })}
+      >
+        <View style={styles.placeholder}>
+          <Text style={styles.coordinates}>
+            {userLat.toFixed(4)}°, {userLon.toFixed(4)}°
+          </Text>
+          <Text style={styles.placeholderText}>
+            {t('home.zonesMonitored', { count: zones.length })}
+          </Text>
+          <Text style={styles.mapNote}>{t('home.mapUnavailable')}</Text>
         </View>
       </View>
     );
