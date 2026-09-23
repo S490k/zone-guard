@@ -49,15 +49,18 @@ export async function ensureBackgroundPermission(): Promise<boolean> {
       const existing = await Location.getBackgroundPermissionsAsync();
       if (existing.status === 'granted') return true;
 
-      if (!existing.canAskAgain) {
-        console.warn(
-          '[Permissions] Background location permanently denied — enable "Always" in Settings'
-        );
-        return false;
+      if (existing.canAskAgain) {
+        const { status } = await Location.requestBackgroundPermissionsAsync();
+        if (status === 'granted') return true;
       }
 
-      const { status } = await Location.requestBackgroundPermissionsAsync();
-      return status === 'granted';
+      // iOS often defers or suppresses the "Always" upgrade prompt, so denial
+      // here is routine rather than exceptional — name the manual route out.
+      console.warn(
+        '[Permissions] Background location not granted. Set Location to "Always" for ZoneGuard: ' +
+          'Settings > Privacy & Security > Location Services > ZoneGuard > Always'
+      );
+      return false;
     } catch (error) {
       console.error('[Permissions] Background request failed:', error);
       return false;
