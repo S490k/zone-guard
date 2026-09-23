@@ -111,7 +111,7 @@ Each entry requires a technical justification, not a scheduling one.
 | Phase | Commit | Summary |
 |---|---|---|
 | 0 | `122f2fd` | Baseline commit of as-received project; git initialised. |
-| 1 | _pending_ | All five blocking defects (B1–B5) resolved. See below. |
+| 1 | `4921a03` | All five blocking defects (B1–B5) resolved. See below. |
 
 ### Phase 1 detail — blocking defects resolved
 
