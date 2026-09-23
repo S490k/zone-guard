@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { detectActiveZones, ZoneProximity } from '@utils/distance';
+import { ensureForegroundPermission } from '@utils/permissions';
 import { DISASTER_ZONES } from '@constants/zones';
 
 export interface LocationData {
@@ -26,16 +27,12 @@ export function useLocationMonitor(): UseLocationMonitorReturn {
 
   const watchSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
 
-  // Request location permissions
+  // Delegates to the shared gate so this does not race the background task's
+  // own request — iOS treats a concurrent second request as denied.
   const requestPermissions = useCallback(async (): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      return status === 'granted';
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      return false;
+      return await ensureForegroundPermission();
     } finally {
       setIsLoading(false);
     }
@@ -44,13 +41,10 @@ export function useLocationMonitor(): UseLocationMonitorReturn {
   // Start watching location
   const startWatching = useCallback(async () => {
     try {
-      // Check permissions
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        const granted = await requestPermissions();
-        if (!granted) {
-          throw new Error('Location permission denied');
-        }
+      const granted = await requestPermissions();
+      if (!granted) {
+        setError(new Error('Location permission denied'));
+        return;
       }
 
       // Start watching position

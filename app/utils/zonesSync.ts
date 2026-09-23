@@ -60,9 +60,10 @@ export function startZonesSync(
         onUpdate(alerts);
       },
       (error) => {
-        console.error('Error syncing zones:', error);
         if (onError) {
           onError(error as Error);
+        } else {
+          console.error('Error syncing zones:', error);
         }
       }
     );

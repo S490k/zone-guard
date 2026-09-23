@@ -6,6 +6,7 @@ import { detectActiveZones } from '@utils/distance';
 import { getCachedZones } from '@utils/zoneCache';
 import { getPersistedUid } from '@utils/session';
 import { presentZoneAlert } from '@utils/localAlerts';
+import { ensureForegroundPermission, ensureBackgroundPermission } from '@utils/permissions';
 import { DisasterZone } from '@constants/zones';
 
 export const BACKGROUND_LOCATION_TASK_NAME = 'background-location-task';
@@ -176,14 +177,12 @@ export async function startBackgroundLocationTracking(): Promise<TrackingStartRe
   };
 
   try {
-    const { status: foreground } = await Location.requestForegroundPermissionsAsync();
-    if (foreground !== 'granted') {
-      console.error('[BackgroundLocation] Foreground permission denied');
+    if (!(await ensureForegroundPermission())) {
+      console.warn('[BackgroundLocation] Foreground permission denied');
       return result;
     }
 
-    const { status: background } = await Location.requestBackgroundPermissionsAsync();
-    result.backgroundGranted = background === 'granted';
+    result.backgroundGranted = await ensureBackgroundPermission();
     if (!result.backgroundGranted) {
       console.warn('[BackgroundLocation] Background permission denied — degraded mode');
       return result;
