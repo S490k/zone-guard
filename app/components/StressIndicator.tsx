@@ -80,8 +80,15 @@ export const StressIndicator: React.FC<StressIndicatorProps> = ({
     },
   });
 
+  // Read as one unit: the digits and the label are meaningless apart.
   return (
-    <View style={style}>
+    <View
+      style={style}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Preparedness score ${Math.round(score)} out of 100. ${statusLabel}.`}
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(score) }}
+    >
       <View style={styles.container}>
         <Text style={styles.score}>{Math.round(score)}</Text>
       </View>

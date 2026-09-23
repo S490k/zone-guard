@@ -54,6 +54,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       marginBottom: theme.spacing.md,
       flexDirection: 'row',
       alignItems: 'center',
+      // WCAG 2.1 AA minimum target size; the row is the touch target.
+      minHeight: 44,
       ...theme.shadows.sm,
     },
     checkbox: {
@@ -88,18 +90,22 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     },
   });
 
+  // One touchable for the whole row rather than a checkbox nested inside a card.
+  // Nesting gave screen readers two overlapping targets for a single action, and
+  // left the card itself inert when only onToggle was supplied.
   return (
     <TouchableOpacity
       style={[styles.container, style]}
-      onPress={() => onPress?.(task.id)}
+      onPress={() => (onPress ? onPress(task.id) : onToggle?.(task.id))}
       activeOpacity={0.7}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: task.completed }}
+      accessibilityLabel={task.title}
+      accessibilityHint={task.description}
     >
-      <TouchableOpacity
-        style={styles.checkbox}
-        onPress={() => onToggle?.(task.id)}
-      >
+      <View style={styles.checkbox} importantForAccessibility="no">
         {task.completed && <Text style={styles.checkmark}>✓</Text>}
-      </TouchableOpacity>
+      </View>
       <View style={styles.content}>
         <Text style={styles.title}>{task.title}</Text>
         {task.description && (

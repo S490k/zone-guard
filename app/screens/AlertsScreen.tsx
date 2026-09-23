@@ -106,6 +106,8 @@ export const AlertsScreen: React.FC = () => {
       paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.md,
       marginBottom: theme.spacing.lg,
+      minHeight: 44,
+      justifyContent: 'center',
     },
     testButtonText: {
       color: COLORS.background,
@@ -177,10 +179,20 @@ export const AlertsScreen: React.FC = () => {
         </View>
 
         {/* Test Alert Button */}
-        <TouchableOpacity style={styles.testButton} onPress={handleTestAlert}>
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={handleTestAlert}
+          accessibilityRole="button"
+          accessibilityLabel="Send a test alert notification"
+          accessibilityHint="Delivers a clearly marked test notification so you can confirm alerts work"
+        >
           <Text style={styles.testButtonText}>Send Test Alert</Text>
         </TouchableOpacity>
-        {testStatus && <Text style={styles.alertMeta}>{testStatus}</Text>}
+        {testStatus && (
+          <Text style={styles.alertMeta} accessibilityLiveRegion="polite">
+            {testStatus}
+          </Text>
+        )}
 
         {/* Active Alerts */}
         <View style={styles.section}>
@@ -199,9 +211,11 @@ export const AlertsScreen: React.FC = () => {
                       styles.alertItem,
                       { borderLeftColor: getSeverityColor(zone.severity) },
                     ]}
+                    accessible
+                    accessibilityLabel={`${zone.severity} severity. ${zone.name}. ${zone.description}. ${zone.radiusKm} kilometre radius.`}
                   >
                     <View style={styles.alertHeader}>
-                      <Text style={styles.alertIcon}>
+                      <Text style={styles.alertIcon} importantForAccessibility="no">
                         {getSeverityIcon(zone.severity)}
                       </Text>
                       <Text style={styles.alertTitle}>{zone.name}</Text>

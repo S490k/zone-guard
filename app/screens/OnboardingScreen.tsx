@@ -117,6 +117,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     skipButton: {
       paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.sm,
+      minHeight: 44,
+      minWidth: 44,
+      justifyContent: 'center',
     },
     skipText: {
       color: COLORS.textSecondary,
@@ -127,6 +130,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       borderRadius: theme.borderRadius.lg,
       paddingHorizontal: theme.spacing.xl,
       paddingVertical: theme.spacing.md,
+      minHeight: 44,
+      justifyContent: 'center',
     },
     nextButtonText: {
       color: COLORS.background,
@@ -162,10 +167,22 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         scrollIndicatorInsets={{ top: 1 }}
         showsHorizontalScrollIndicator={false}
         style={styles.scrollView}
+        // Without this the dots and the button label only tracked the Next
+        // button, so swiping by hand left them showing the wrong slide.
+        onMomentumScrollEnd={(event) => {
+          setCurrentStep(Math.round(event.nativeEvent.contentOffset.x / width));
+        }}
       >
         {ONBOARDING_STEPS.map((step, index) => (
-          <View key={index} style={styles.slide}>
-            <Text style={styles.emoji}>{step.emoji}</Text>
+          <View
+            key={step.title}
+            style={styles.slide}
+            accessible
+            accessibilityLabel={`Step ${index + 1} of ${ONBOARDING_STEPS.length}. ${step.title}. ${step.description}`}
+          >
+            <Text style={styles.emoji} importantForAccessibility="no">
+              {step.emoji}
+            </Text>
             <Text style={styles.title}>{step.title}</Text>
             <Text style={styles.description}>{step.description}</Text>
           </View>
@@ -174,21 +191,40 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={handleSkip}
+          accessibilityRole="button"
+          accessibilityLabel="Skip the introduction"
+        >
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
 
         {/* Dots */}
-        <View style={styles.dots}>
-          {ONBOARDING_STEPS.map((_, index) => (
+        <View
+          style={styles.dots}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Step ${currentStep + 1} of ${ONBOARDING_STEPS.length}`}
+        >
+          {ONBOARDING_STEPS.map((step, index) => (
             <View
-              key={index}
+              key={step.title}
               style={[styles.dot, index === currentStep && styles.activeDot]}
             />
           ))}
         </View>
 
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={handleNext}
+          accessibilityRole="button"
+          accessibilityLabel={
+            currentStep === ONBOARDING_STEPS.length - 1
+              ? 'Get started and finish the introduction'
+              : 'Next step'
+          }
+        >
           <Text style={styles.nextButtonText}>
             {currentStep === ONBOARDING_STEPS.length - 1 ? 'Get Started' : 'Next'}
           </Text>

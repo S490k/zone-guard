@@ -194,6 +194,15 @@ export const HomeScreen: React.FC = () => {
                     styles.zoneItem,
                     { borderLeftColor: SEVERITY_COLORS[zone.severity] },
                   ]}
+                  accessible
+                  // Entering a zone is the app's most consequential state change,
+                  // so it is announced rather than left for the user to discover.
+                  accessibilityLiveRegion={proximity.isInZone ? 'assertive' : 'none'}
+                  accessibilityLabel={
+                    proximity.isInZone
+                      ? `Warning. You are inside ${zone.name}, ${zone.severity} severity, ${proximity.distance.toFixed(1)} kilometres from the centre.`
+                      : `${zone.name}, ${proximity.distance.toFixed(1)} kilometres away, ${zone.radiusKm} kilometre radius.`
+                  }
                 >
                   <Text style={styles.zoneTitle}>{zone.name}</Text>
                   <Text style={styles.zoneDistance}>

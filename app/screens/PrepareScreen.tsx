@@ -90,6 +90,8 @@ export const PrepareScreen: React.FC = () => {
       padding: theme.spacing.md,
       borderLeftWidth: 4,
       borderLeftColor: COLORS.accent,
+      minHeight: 44,
+      justifyContent: 'center',
     },
     quizTitle: {
       color: COLORS.textPrimary,

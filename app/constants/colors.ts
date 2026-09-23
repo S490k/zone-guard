@@ -11,7 +11,9 @@ export const COLORS = {
   // Text colors
   textPrimary: '#FFFFFF',
   textSecondary: '#A8B2D1',
-  textTertiary: '#6B7489',
+  // #6B7489 measured 4.06:1 against the background, below the WCAG AA 4.5:1
+  // floor for normal text. This lightened value measures 4.58:1.
+  textTertiary: '#737C97',
 
   // Alert severity colors
   alertLow: '#4CAF50',
