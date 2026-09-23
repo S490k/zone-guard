@@ -10,41 +10,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
-import { Alert } from '@utils/zonesSync';
+import { useZones } from '@context/ZonesContext';
+import { presentZoneAlert } from '@utils/localAlerts';
+import { requestNotificationPermissions } from '@utils/fcmSetup';
 
 export const AlertsScreen: React.FC = () => {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [alertHistory, setAlertHistory] = useState<Alert[]>([
-    {
-      id: 'alert-1',
-      zoneId: 'zone-taunsa-barrage',
-      title: 'Flood Warning - Taunsa Barrage',
-      description: 'Heavy rainfall expected in the next 24 hours',
-      severity: 'high',
-      latitude: 30.6987,
-      longitude: 70.8503,
-      radiusKm: 15,
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      expiresAt: new Date(Date.now() + 22 * 60 * 60 * 1000), // 22 hours from now
-      isActive: true,
-    },
-  ]);
+  const { zones, isLive, isLoading } = useZones();
+  const [testStatus, setTestStatus] = useState<string | null>(null);
 
-  const handleTestAlert = () => {
-    const testAlert: Alert = {
-      id: `test-${Date.now()}`,
-      zoneId: 'zone-jacobabad',
-      title: 'Test Alert',
-      description: 'This is a test alert',
-      severity: 'medium',
-      latitude: 27.2822,
-      longitude: 68.4501,
-      radiusKm: 30,
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-      isActive: true,
-    };
-    setAlertHistory([testAlert, ...alertHistory]);
+  const handleTestAlert = async () => {
+    const zone = zones[0];
+    if (!zone) {
+      setTestStatus('No zones available to test against.');
+      return;
+    }
+
+    if (!(await requestNotificationPermissions())) {
+      setTestStatus('Notifications are turned off for ZoneGuard.');
+      return;
+    }
+
+    // bypassDedup so repeated presses always deliver; a real entry alert stays
+    // subject to the cooldown.
+    const delivered = await presentZoneAlert(zone, {
+      isTest: true,
+      bypassDedup: true,
+    });
+    setTestStatus(
+      delivered ? `Test alert sent for ${zone.name}.` : 'Test alert could not be delivered.'
+    );
   };
 
   const getSeverityColor = (severity: string) => {
@@ -162,8 +156,6 @@ export const AlertsScreen: React.FC = () => {
     },
   });
 
-  const activeAlerts = alertHistory.filter((a) => a.isActive);
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -173,76 +165,49 @@ export const AlertsScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Alerts</Text>
-          <Text style={styles.subtitle}>Disaster zone notifications</Text>
+          <Text style={styles.subtitle}>
+            {isLoading
+              ? 'Loading active alerts…'
+              : isLive
+                ? 'Live from the national alert feed'
+                : 'Offline — showing cached alerts'}
+          </Text>
         </View>
 
         {/* Test Alert Button */}
         <TouchableOpacity style={styles.testButton} onPress={handleTestAlert}>
-          <Text style={styles.testButtonText}>🧪 Send Test Alert</Text>
+          <Text style={styles.testButtonText}>Send Test Alert</Text>
         </TouchableOpacity>
+        {testStatus && <Text style={styles.alertMeta}>{testStatus}</Text>}
 
         {/* Active Alerts */}
-        {activeAlerts.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Active Alerts</Text>
-            <GlassmorphicCard>
-              <View style={styles.alertsList}>
-                {activeAlerts.map((alert) => (
-                  <View
-                    key={alert.id}
-                    style={[
-                      styles.alertItem,
-                      { borderLeftColor: getSeverityColor(alert.severity) },
-                    ]}
-                  >
-                    <View style={styles.alertHeader}>
-                      <Text style={styles.alertIcon}>
-                        {getSeverityIcon(alert.severity)}
-                      </Text>
-                      <Text style={styles.alertTitle}>{alert.title}</Text>
-                    </View>
-                    <Text style={styles.alertDescription}>
-                      {alert.description}
-                    </Text>
-                    <Text style={styles.alertMeta}>
-                      Zone: {alert.zoneId} • {alert.radiusKm}km radius
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </GlassmorphicCard>
-          </View>
-        )}
-
-        {/* Alert History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Alert History ({alertHistory.length})
-          </Text>
-          {alertHistory.length === 0 ? (
-            <Text style={styles.emptyState}>No alerts yet</Text>
+          <Text style={styles.sectionTitle}>Active Alerts ({zones.length})</Text>
+          {zones.length === 0 ? (
+            <Text style={styles.emptyState}>
+              No active alerts. Published alerts appear here automatically.
+            </Text>
           ) : (
             <GlassmorphicCard>
               <View style={styles.alertsList}>
-                {alertHistory.map((alert) => (
+                {zones.map((zone) => (
                   <View
-                    key={alert.id}
+                    key={zone.id}
                     style={[
                       styles.alertItem,
-                      { borderLeftColor: getSeverityColor(alert.severity) },
+                      { borderLeftColor: getSeverityColor(zone.severity) },
                     ]}
                   >
                     <View style={styles.alertHeader}>
                       <Text style={styles.alertIcon}>
-                        {getSeverityIcon(alert.severity)}
+                        {getSeverityIcon(zone.severity)}
                       </Text>
-                      <Text style={styles.alertTitle}>{alert.title}</Text>
+                      <Text style={styles.alertTitle}>{zone.name}</Text>
                     </View>
-                    <Text style={styles.alertDescription}>
-                      {alert.description}
-                    </Text>
+                    <Text style={styles.alertDescription}>{zone.description}</Text>
                     <Text style={styles.alertMeta}>
-                      {alert.createdAt.toLocaleString()}
+                      {zone.radiusKm}km radius
+                      {zone.expiresAt ? ` • expires ${zone.expiresAt.toLocaleString()}` : ''}
                     </Text>
                   </View>
                 ))}

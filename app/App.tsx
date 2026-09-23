@@ -16,14 +16,12 @@ import AlertsScreen from '@screens/AlertsScreen';
 import EmergencyInfoScreen from '@screens/EmergencyInfoScreen';
 
 import { setupPushNotifications, setupNotificationListeners } from '@utils/fcmSetup';
-import { startZonesSync } from '@utils/zonesSync';
-import { cacheZones } from '@utils/zoneCache';
 import { useAuth } from '@hooks/useAuth';
+import { ZonesProvider } from '@context/ZonesContext';
 // Importing this file registers the background tasks with TaskManager (must happen at startup).
 import {
   startBackgroundLocationTracking,
   stopBackgroundLocationTracking,
-  refreshGeofences,
 } from '@tasks/backgroundLocationTask';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -86,36 +84,13 @@ export default function App() {
   const { user, error: authError } = useAuth();
 
   useEffect(() => {
-    let unsubscribeZones: () => void = () => {};
     let removeListeners: () => void = () => {};
 
     (async () => {
       try {
         const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
         setHasSeenOnboarding(seen === 'true');
-
         removeListeners = setupNotificationListeners();
-        unsubscribeZones = startZonesSync(
-          async (alerts) => {
-            console.log(`[ZoneGuard] ${alerts.length} active alerts`);
-            // Mirror to storage so the background task and offline mode can read them.
-            await cacheZones(
-              alerts.map((alert) => ({
-                id: alert.id,
-                name: alert.title,
-                latitude: alert.latitude,
-                longitude: alert.longitude,
-                radiusKm: alert.radiusKm,
-                severity: alert.severity,
-                description: alert.description,
-                createdAt: alert.createdAt,
-                expiresAt: alert.expiresAt,
-              }))
-            );
-            await refreshGeofences();
-          },
-          (error) => console.error('Zones sync error:', error)
-        );
       } catch (error) {
         console.error('Error preparing app:', error);
       } finally {
@@ -124,7 +99,6 @@ export default function App() {
     })();
 
     return () => {
-      unsubscribeZones();
       removeListeners();
     };
   }, []);
@@ -172,13 +146,15 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      {hasSeenOnboarding ? (
-        <NavigationContainer theme={navigationTheme}>
-          <TabNavigator />
-        </NavigationContainer>
-      ) : (
-        <OnboardingScreen onComplete={completeOnboarding} />
-      )}
+      <ZonesProvider>
+        {hasSeenOnboarding ? (
+          <NavigationContainer theme={navigationTheme}>
+            <TabNavigator />
+          </NavigationContainer>
+        ) : (
+          <OnboardingScreen onComplete={completeOnboarding} />
+        )}
+      </ZonesProvider>
     </SafeAreaProvider>
   );
 }

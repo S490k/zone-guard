@@ -17,6 +17,7 @@ module.exports = function (api) {
             '@constants': './app/constants',
             '@theme': './app/theme',
             '@tasks': './app/tasks',
+            '@context': './app/context',
           },
         },
       ],

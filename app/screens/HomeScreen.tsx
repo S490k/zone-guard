@@ -9,12 +9,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { useLocationMonitor } from '@hooks/useLocationMonitor';
+import { useZones } from '@context/ZonesContext';
+import { SEVERITY_COLORS } from '@constants/zones';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { StressIndicator } from '@components/StressIndicator';
 import { GeofenceMap } from '@components/GeofenceMap';
 
 export const HomeScreen: React.FC = () => {
-  const { location, activeZones, error } = useLocationMonitor();
+  const { zones, isLive, isLoading } = useZones();
+  const { location, activeZones, error } = useLocationMonitor(zones);
   const [preparednessScore, setPreparednessScore] = useState(45);
 
   useEffect(() => {
@@ -91,7 +94,18 @@ export const HomeScreen: React.FC = () => {
     },
   });
 
-  const closestZone = activeZones.length > 0 ? activeZones[0] : null;
+  // activeZones is sorted nearest-first and carries only ids; pair each with its
+  // zone so the UI can show a name rather than "zone-taunsa-barrage".
+  const rankedZones = activeZones
+    .map((proximity) => ({
+      proximity,
+      zone: zones.find((candidate) => candidate.id === proximity.zoneId),
+    }))
+    .filter((entry): entry is { proximity: typeof entry.proximity; zone: NonNullable<typeof entry.zone> } =>
+      Boolean(entry.zone)
+    );
+
+  const zonesContainingUser = rankedZones.filter((entry) => entry.proximity.isInZone);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -149,25 +163,54 @@ export const HomeScreen: React.FC = () => {
           </GlassmorphicCard>
         </View>
 
-        {/* Nearby Zones */}
-        {closestZone && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nearest Zone</Text>
-            <GlassmorphicCard>
-              <View style={styles.zonesList}>
-                <View style={styles.zoneItem}>
-                  <Text style={styles.zoneTitle}>Zone: {closestZone.zoneId}</Text>
+        {/* Monitored Zones */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {zonesContainingUser.length > 0 ? 'You are in a disaster zone' : 'Monitored Zones'}
+          </Text>
+          <Text style={styles.zoneDistance}>
+            {isLoading
+              ? 'Loading zones…'
+              : `${zones.length} zone${zones.length === 1 ? '' : 's'} monitored` +
+                (isLive ? '' : ' · offline, using cached data')}
+          </Text>
+
+          {rankedZones.length === 0 ? (
+            <GlassmorphicCard style={{ marginTop: theme.spacing.md }}>
+              <Text style={styles.statusText}>
+                {zones.length === 0
+                  ? 'No active zones. Alerts will appear here when one is published.'
+                  : 'Waiting for your location to compare against zones…'}
+              </Text>
+            </GlassmorphicCard>
+          ) : (
+            <View style={[styles.zonesList, { marginTop: theme.spacing.md }]}>
+              {rankedZones.map(({ proximity, zone }) => (
+                <View
+                  key={zone.id}
+                  style={[
+                    styles.zoneItem,
+                    { borderLeftColor: SEVERITY_COLORS[zone.severity] },
+                  ]}
+                >
+                  <Text style={styles.zoneTitle}>{zone.name}</Text>
                   <Text style={styles.zoneDistance}>
-                    Distance: {closestZone.distance.toFixed(2)} km
+                    {proximity.isInZone
+                      ? `Inside · ${proximity.distance.toFixed(1)}km from centre`
+                      : `${proximity.distance.toFixed(1)}km away · ${zone.radiusKm}km radius`}
                   </Text>
-                  <Text style={styles.zoneDistance}>
-                    Status: {closestZone.isInZone ? '🔴 IN ZONE' : closestZone.isNearZone ? '🟡 NEARBY' : '🟢 CLEAR'}
+                  <Text style={[styles.zoneDistance, { color: SEVERITY_COLORS[zone.severity] }]}>
+                    {proximity.isInZone
+                      ? `IN ZONE · ${zone.severity.toUpperCase()}`
+                      : proximity.isNearZone
+                        ? `APPROACHING${proximity.estimatedTimeToZone ? ` · ~${proximity.estimatedTimeToZone} min away` : ''}`
+                        : 'CLEAR'}
                   </Text>
                 </View>
-              </View>
-            </GlassmorphicCard>
-          </View>
-        )}
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

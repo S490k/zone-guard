@@ -77,6 +77,15 @@ Every Firestore write was gated behind `auth.currentUser`, which was permanently
 ### D3 — uid mirrored to device storage
 Background tasks execute in a separate JS context where Firebase Auth has not rehydrated from `AsyncStorage`, so `auth.currentUser` is `null` on cold start. The uid is mirrored to `AsyncStorage` at sign-in (`app/utils/session.ts`) and read from there by background code. Reading `auth.currentUser` directly in a background task is unreliable by construction.
 
+### D5 — Single zone source via React context
+Zones were being fetched by `zonesSync` and cached, but nothing rendered them: screens and `useLocationMonitor` read the hardcoded `DISASTER_ZONES` regardless, so a Firestore alert could never reach the UI. A `ZonesProvider` context now owns the listener and is the single source for every consumer.
+
+The provider hydrates from cache *before* the listener resolves, so the UI is populated on launch and stays populated with no network. It exposes `isLive`, which turns false when the listener errors — letting screens state plainly that they are showing cached data rather than silently presenting stale alerts as current. On a listener error the cached zones are retained rather than cleared, satisfying the roadmap's requirement that sync failures degrade rather than blank the screen.
+
+`useLocationMonitor` now takes zones as an argument instead of importing them. This removes the hidden dependency and makes the hook testable with fixture zones — relevant to the Phase 5 coverage target, since the hook was previously untestable without mocking a module-level constant. Zones are read through a ref inside the position watcher so a zone update does not tear down and re-establish the subscription.
+
+`DISASTER_ZONES` remains reachable only as `zoneCache`'s fallback when Firestore has returned nothing and no cache exists.
+
 ### D4 — Zones mirrored to device storage
 The same context boundary means a live Firestore listener is invisible to the background task — this is why the original task still read the hardcoded `DISASTER_ZONES`. Zones are now cached to `AsyncStorage` (`app/utils/zoneCache.ts`) whenever the listener fires, with the bundled list as fallback. This doubles as the offline source.
 

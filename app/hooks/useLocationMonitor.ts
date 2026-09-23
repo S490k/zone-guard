@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { detectActiveZones, ZoneProximity } from '@utils/distance';
 import { ensureForegroundPermission } from '@utils/permissions';
-import { DISASTER_ZONES } from '@constants/zones';
+import { DisasterZone } from '@constants/zones';
 
 export interface LocationData {
   latitude: number;
@@ -19,7 +19,7 @@ export interface UseLocationMonitorReturn {
   requestPermissions: () => Promise<boolean>;
 }
 
-export function useLocationMonitor(): UseLocationMonitorReturn {
+export function useLocationMonitor(zones: DisasterZone[]): UseLocationMonitorReturn {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [activeZones, setActiveZones] = useState<ZoneProximity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +27,13 @@ export function useLocationMonitor(): UseLocationMonitorReturn {
 
   const watchSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const inZoneKeyRef = useRef<string>('');
+
+  // Read through a ref so a zone update does not tear down and re-establish the
+  // position watcher, which would drop the subscription mid-flight.
+  const zonesRef = useRef(zones);
+  useEffect(() => {
+    zonesRef.current = zones;
+  }, [zones]);
 
   // Delegates to the shared gate so this does not race the background task's
   // own request — iOS treats a concurrent second request as denied.
@@ -66,19 +73,18 @@ export function useLocationMonitor(): UseLocationMonitorReturn {
 
           setLocation(locationData);
 
-          // Detect active zones
-          const zones = detectActiveZones(
+          const proximities = detectActiveZones(
             coords.latitude,
             coords.longitude,
-            DISASTER_ZONES
+            zonesRef.current
           );
-          setActiveZones(zones);
+          setActiveZones(proximities);
 
           // A position arrives every few seconds; logging each one buries the
           // events that matter. Only membership changes are worth a line.
-          const inZoneKey = zones
-            .filter((zone) => zone.isInZone)
-            .map((zone) => zone.zoneId)
+          const inZoneKey = proximities
+            .filter((proximity) => proximity.isInZone)
+            .map((proximity) => proximity.zoneId)
             .sort()
             .join(',');
 

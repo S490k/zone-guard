@@ -6,6 +6,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '@config/firebase';
+import { DisasterZone } from '@constants/zones';
 
 export interface Alert {
   id: string;
@@ -19,6 +20,25 @@ export interface Alert {
   createdAt: Date;
   expiresAt: Date;
   isActive: boolean;
+}
+
+/**
+ * Firestore stores alerts in an operational shape (title/description); the rest
+ * of the app works in zone terms. Converting at the boundary keeps the Firestore
+ * field names from leaking into screens and geofence registration.
+ */
+export function alertToZone(alert: Alert): DisasterZone {
+  return {
+    id: alert.id,
+    name: alert.title,
+    latitude: alert.latitude,
+    longitude: alert.longitude,
+    radiusKm: alert.radiusKm,
+    severity: alert.severity,
+    description: alert.description,
+    createdAt: alert.createdAt,
+    expiresAt: alert.expiresAt,
+  };
 }
 
 // Setup real-time listener for active disaster alerts
