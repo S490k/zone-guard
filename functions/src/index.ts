@@ -2,20 +2,21 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import cors from 'cors';
 
-// Initialize Firebase Admin SDK
 admin.initializeApp();
 
 const db = admin.firestore();
-const messaging = admin.messaging();
 const corsHandler = cors({ origin: true });
 
-// Haversine distance calculation (same as client-side)
-function haversineDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
+const REGION = 'asia-south1';
+const DEDUP_WINDOW_MS = 60 * 1000;
+const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+}
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -27,185 +28,233 @@ function haversineDistance(
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Cloud Function: Check zone proximity and send FCM alerts
-export const checkZoneProximity = functions.firestore
-  .document('users/{userId}')
-  .onUpdate(async (change, context) => {
-    const userId = context.params.userId;
-    const newData = change.after.data();
-    const previousData = change.before.data();
+function isUsableLocation(location: unknown): location is UserLocation {
+  if (!location || typeof location !== 'object') return false;
+  const { latitude, longitude } = location as Partial<UserLocation>;
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return false;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return false;
+  // Null Island is the signature of an uninitialised GPS fix, not a real position.
+  if (latitude === 0 && longitude === 0) return false;
+  return Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
+}
 
-    // Extract location from user doc
-    const location = newData.lastKnownLocation;
-    if (!location || !location.latitude || !location.longitude) {
-      console.log('No valid location for user:', userId);
+function locationsMatch(a: unknown, b: unknown): boolean {
+  if (!isUsableLocation(a) || !isUsableLocation(b)) return false;
+  return a.latitude === b.latitude && a.longitude === b.longitude;
+}
+
+function toMillis(value: unknown): number | null {
+  if (value instanceof admin.firestore.Timestamp) return value.toMillis();
+  if (value instanceof Date) return value.getTime();
+  return null;
+}
+
+interface ExpoPushTicket {
+  status: 'ok' | 'error';
+  id?: string;
+  message?: string;
+  details?: { error?: string };
+}
+
+/**
+ * Delivers through Expo's push service rather than admin.messaging(). The client
+ * registers an Expo token (ExponentPushToken[...]), which the FCM Admin SDK
+ * rejects outright — it accepts only native FCM registration tokens.
+ */
+async function sendExpoPush(
+  token: string,
+  title: string,
+  body: string,
+  data: Record<string, string>
+): Promise<ExpoPushTicket> {
+  const response = await fetch(EXPO_PUSH_ENDPOINT, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: token, title, body, data, sound: 'default', priority: 'high' }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Expo push HTTP ${response.status}`);
+  }
+
+  const payload = (await response.json()) as { data: ExpoPushTicket };
+  return payload.data;
+}
+
+export const checkZoneProximity = functions
+  .region(REGION)
+  .firestore.document('users/{userId}')
+  .onUpdate(async (change, context) => {
+    const { userId } = context.params;
+    const after = change.after.data();
+    const before = change.before.data();
+
+    // This handler writes back to the same document, which retriggers it. Bailing
+    // out when the position is unchanged stops that second pass immediately.
+    const forceRequested = toMillis(after.forceCheckAt) !== toMillis(before.forceCheckAt);
+    if (!forceRequested && locationsMatch(before.lastKnownLocation, after.lastKnownLocation)) {
       return;
     }
 
-    const userLat = location.latitude;
-    const userLon = location.longitude;
+    const location = after.lastKnownLocation;
+    if (!isUsableLocation(location)) {
+      console.log(`[checkZoneProximity] No usable location for ${userId}`);
+      return;
+    }
+
+    const pushToken: string | undefined = after.expoPushToken;
+    if (!pushToken) {
+      console.log(`[checkZoneProximity] No push token for ${userId}`);
+      return;
+    }
+
+    const { latitude, longitude } = location;
 
     try {
-      // Get all active alerts from Firestore
+      const now = new Date();
       const alertsSnapshot = await db
         .collection('alerts')
         .where('isActive', '==', true)
-        .where('expiresAt', '>', new Date())
+        .where('expiresAt', '>', now)
         .get();
 
-      console.log(`Found ${alertsSnapshot.docs.length} active alerts`);
+      console.log(`[checkZoneProximity] ${alertsSnapshot.size} active alerts`);
 
-      // Get user's alert log for deduplication
       const alertLogRef = db.collection('users').doc(userId).collection('alertLog');
-      const recentAlertsSnapshot = await alertLogRef
-        .where('sentAt', '>', new Date(Date.now() - 60 * 1000)) // Last 60 seconds
+      const recentSnapshot = await alertLogRef
+        .where('sentAt', '>', new Date(Date.now() - DEDUP_WINDOW_MS))
         .get();
+      const recentAlertIds = new Set(recentSnapshot.docs.map((d) => d.data().alertId));
 
-      const recentAlertIds = new Set(
-        recentAlertsSnapshot.docs.map((doc) => doc.data().alertId)
-      );
-
-      // Check each alert
       for (const alertDoc of alertsSnapshot.docs) {
         const alert = alertDoc.data();
         const alertId = alertDoc.id;
 
-        // Skip if already sent recently (deduplication)
         if (recentAlertIds.has(alertId)) {
-          console.log(`Skipping duplicate alert: ${alertId}`);
+          console.log(`[checkZoneProximity] ${alertId} sent <60s ago, skipping`);
           continue;
         }
 
-        // Calculate distance from user to alert zone
-        const distance = haversineDistance(
-          userLat,
-          userLon,
-          alert.latitude,
-          alert.longitude
+        if (typeof alert.latitude !== 'number' || typeof alert.radiusKm !== 'number') {
+          console.warn(`[checkZoneProximity] Alert ${alertId} is malformed, skipping`);
+          continue;
+        }
+
+        const distance = haversineDistance(latitude, longitude, alert.latitude, alert.longitude);
+        console.log(
+          `[checkZoneProximity] ${alertId}: ${distance.toFixed(2)}km vs ${alert.radiusKm}km radius`
         );
 
-        console.log(`Alert ${alertId}: distance = ${distance.toFixed(2)} km, radius = ${alert.radiusKm} km`);
+        if (distance > alert.radiusKm) continue;
 
-        // Check if user is in zone
-        if (distance <= alert.radiusKm) {
-          console.log(`User ${userId} is IN zone for alert ${alertId}`);
-
-          // Get user's push token
-          const userDoc = await db.collection('users').doc(userId).get();
-          const expoPushToken = userDoc.data()?.expoPushToken;
-
-          if (expoPushToken) {
-            // Send FCM message
-            try {
-              const messageId = await messaging.send({
-                token: expoPushToken,
-                notification: {
-                  title: alert.title,
-                  body: alert.description,
-                },
-                data: {
-                  alertId: alertId,
-                  zoneId: alert.zoneId,
-                  severity: alert.severity,
-                  distance: distance.toFixed(2),
-                  type: 'zone_alert',
-                },
-              });
-
-              console.log(`FCM sent successfully: ${messageId}`);
-
-              // Log alert in alertLog for deduplication
-              await alertLogRef.add({
-                alertId: alertId,
-                sentAt: new Date(),
-                distance: distance,
-                severity: alert.severity,
-              });
-
-              // Update user's last alert timestamp
-              await db.collection('users').doc(userId).update({
-                lastAlertAt: new Date(),
-              });
-            } catch (error) {
-              console.error(`Error sending FCM for alert ${alertId}:`, error);
-
-              // If token is invalid, remove it
-              if (
-                error instanceof Error &&
-                error.message?.includes('invalid-registration-token')
-              ) {
-                await db.collection('users').doc(userId).update({
-                  expoPushToken: admin.firestore.FieldValue.delete(),
-                });
-              }
+        try {
+          const ticket = await sendExpoPush(
+            pushToken,
+            alert.title,
+            `${alert.description} You are ${distance.toFixed(1)}km from the centre.`,
+            {
+              alertId,
+              zoneId: alert.zoneId ?? '',
+              severity: alert.severity ?? 'high',
+              distance: distance.toFixed(2),
+              type: 'zone_alert',
             }
-          } else {
-            console.warn(`No push token for user ${userId}`);
+          );
+
+          if (ticket.status === 'error') {
+            console.error(`[checkZoneProximity] Expo rejected push: ${ticket.message}`);
+            if (ticket.details?.error === 'DeviceNotRegistered') {
+              await change.after.ref.update({
+                expoPushToken: admin.firestore.FieldValue.delete(),
+              });
+            }
+            continue;
           }
+
+          console.log(`[checkZoneProximity] Push accepted, ticket ${ticket.id}`);
+
+          await alertLogRef.add({
+            alertId,
+            alertTitle: alert.title ?? null,
+            sentAt: admin.firestore.FieldValue.serverTimestamp(),
+            distance,
+            severity: alert.severity ?? 'high',
+            pushTicketId: ticket.id ?? null,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`[checkZoneProximity] Push failed for ${alertId}: ${message}`);
         }
       }
     } catch (error) {
-      console.error('Error checking zone proximity:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[checkZoneProximity] Zone check failed: ${message}`);
       throw error;
     }
   });
 
-// Cloud Function: Cleanup expired alerts
-export const cleanupExpiredAlerts = functions.pubsub
-  .schedule('every 30 minutes')
-  .onRun(async (context) => {
+export const cleanupExpiredAlerts = functions
+  .region(REGION)
+  .pubsub.schedule('every 30 minutes')
+  .onRun(async () => {
     try {
-      const expiredAlertsSnapshot = await db
+      const expired = await db
         .collection('alerts')
         .where('isActive', '==', true)
         .where('expiresAt', '<', new Date())
         .get();
 
-      console.log(`Found ${expiredAlertsSnapshot.docs.length} expired alerts`);
+      if (expired.empty) {
+        console.log('[cleanupExpiredAlerts] Nothing to expire');
+        return;
+      }
 
       const batch = db.batch();
-      expiredAlertsSnapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, { isActive: false });
-      });
-
+      expired.docs.forEach((doc) => batch.update(doc.ref, { isActive: false }));
       await batch.commit();
-      console.log('Expired alerts cleanup completed');
+
+      console.log(`[cleanupExpiredAlerts] Deactivated ${expired.size} alerts`);
     } catch (error) {
-      console.error('Error cleaning up expired alerts:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[cleanupExpiredAlerts] Failed: ${message}`);
       throw error;
     }
   });
 
-// HTTP endpoint to trigger zone check manually (for testing)
-export const triggerZoneCheck = functions.https.onRequest((req, res) => {
+/** Test-only hook: nudges a user document so checkZoneProximity re-evaluates. */
+export const triggerZoneCheck = functions.region(REGION).https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     try {
-      const { userId } = req.body;
-
+      const { userId } = req.body ?? {};
       if (!userId) {
         res.status(400).json({ error: 'userId is required' });
         return;
       }
 
-      const userDoc = await db.collection('users').doc(userId).get();
+      const userRef = db.collection('users').doc(userId);
+      const userDoc = await userRef.get();
       if (!userDoc.exists) {
         res.status(404).json({ error: 'User not found' });
         return;
       }
 
-      // Manually trigger the checkZoneProximity logic
-      // by updating the user doc
-      await db.collection('users').doc(userId).update({
-        lastCheckedAt: new Date(),
-      });
+      const location = userDoc.data()?.lastKnownLocation;
+      if (!isUsableLocation(location)) {
+        res.status(409).json({ error: 'User has no usable location yet' });
+        return;
+      }
+
+      // forceCheckAt is what defeats the unchanged-location guard in
+      // checkZoneProximity; bumping the location alone would be ignored.
+      await userRef.update({ forceCheckAt: new Date(), lastCheckedAt: new Date() });
 
       res.json({ success: true, message: 'Zone check triggered' });
     } catch (error) {
-      console.error('Error triggering zone check:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[triggerZoneCheck] Failed: ${message}`);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

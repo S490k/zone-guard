@@ -17,8 +17,14 @@ import EmergencyInfoScreen from '@screens/EmergencyInfoScreen';
 
 import { setupPushNotifications, setupNotificationListeners } from '@utils/fcmSetup';
 import { startZonesSync } from '@utils/zonesSync';
-// Importing this file registers the background task with TaskManager (must happen at startup).
-import '@tasks/backgroundLocationTask';
+import { cacheZones } from '@utils/zoneCache';
+import { useAuth } from '@hooks/useAuth';
+// Importing this file registers the background tasks with TaskManager (must happen at startup).
+import {
+  startBackgroundLocationTracking,
+  stopBackgroundLocationTracking,
+  refreshGeofences,
+} from '@tasks/backgroundLocationTask';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -77,6 +83,7 @@ function TabNavigator() {
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const { user, error: authError } = useAuth();
 
   useEffect(() => {
     let unsubscribeZones: () => void = () => {};
@@ -89,11 +96,26 @@ export default function App() {
 
         removeListeners = setupNotificationListeners();
         unsubscribeZones = startZonesSync(
-          (alerts) => console.log(`[ZoneGuard] ${alerts.length} active alerts`),
+          async (alerts) => {
+            console.log(`[ZoneGuard] ${alerts.length} active alerts`);
+            // Mirror to storage so the background task and offline mode can read them.
+            await cacheZones(
+              alerts.map((alert) => ({
+                id: alert.id,
+                name: alert.title,
+                latitude: alert.latitude,
+                longitude: alert.longitude,
+                radiusKm: alert.radiusKm,
+                severity: alert.severity,
+                description: alert.description,
+                createdAt: alert.createdAt,
+                expiresAt: alert.expiresAt,
+              }))
+            );
+            await refreshGeofences();
+          },
           (error) => console.error('Zones sync error:', error)
         );
-        // Non-blocking: permission prompt should not hold up first render
-        setupPushNotifications().catch((e) => console.error(e));
       } catch (error) {
         console.error('Error preparing app:', error);
       } finally {
@@ -106,6 +128,31 @@ export default function App() {
       removeListeners();
     };
   }, []);
+
+  useEffect(() => {
+    if (authError) {
+      console.error(
+        '[ZoneGuard] Authentication unavailable — enable Anonymous sign-in in the Firebase console. Location sync is disabled.'
+      );
+    }
+  }, [authError]);
+
+  // Monitoring waits for both a session and a dismissed onboarding, so the
+  // permission prompts do not interrupt the first-run tutorial.
+  useEffect(() => {
+    if (!user || !hasSeenOnboarding) return;
+
+    setupPushNotifications().catch((e) => console.error(e));
+    startBackgroundLocationTracking().then((result) => {
+      if (!result.locationUpdates) {
+        console.warn('[ZoneGuard] Background monitoring unavailable — permissions denied');
+      }
+    });
+
+    return () => {
+      stopBackgroundLocationTracking();
+    };
+  }, [user, hasSeenOnboarding]);
 
   const onLayoutReady = useCallback(async () => {
     if (isReady) await SplashScreen.hideAsync().catch(() => {});
