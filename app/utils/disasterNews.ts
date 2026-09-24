@@ -187,9 +187,15 @@ export async function fetchDisasterNews(
   // Settled independently: one feed being down should not blank the other.
   const [usgs, gdacs] = await Promise.all([fetchJson(USGS_URL), fetchJson(GDACS_URL)]);
 
+  // Array-checked rather than `?? []`: a feed that changes shape and returns
+  // `features` as anything but an array would otherwise throw on .map and take
+  // the whole fetch down instead of degrading to the other source.
+  const features = (payload: any): any[] =>
+    Array.isArray(payload?.features) ? payload.features : [];
+
   const items: NewsItem[] = [
-    ...((usgs?.features ?? []).map(mapUsgsFeature) as (NewsItem | null)[]),
-    ...((gdacs?.features ?? []).map(mapGdacsFeature) as (NewsItem | null)[]),
+    ...(features(usgs).map(mapUsgsFeature) as (NewsItem | null)[]),
+    ...(features(gdacs).map(mapGdacsFeature) as (NewsItem | null)[]),
   ].filter((item): item is NewsItem => item !== null);
 
   if (items.length === 0) {
