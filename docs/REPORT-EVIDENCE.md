@@ -111,11 +111,16 @@ To be completed as phases close.
 
 | Measurement | Baseline | Final | Target | Method |
 |---|---|---|---|---|
-| Statement coverage | 33.12% | **93.29%** | >70% | `npx jest --coverage` |
-| Branch coverage | 45.45% | **91.41%** | >70% | as above |
-| Function coverage | 31.42% | **94.52%** | >70% | as above |
-| Line coverage | 31.33% | **93.09%** | >70% | as above |
-| Passing tests | 33 (+12 stubs) | **156** (+18 emulator-gated) | — | `npx jest` |
+| Statement coverage | 33.12% | **83.9%** | >70% | `npx jest --coverage` |
+| Branch coverage | 45.45% | **78.8%** | >70% | as above |
+| Function coverage | 31.42% | **87.8%** | >70% | as above |
+| Line coverage | 31.33% | **84.1%** | >70% | as above |
+| Passing tests | 33 (+12 stubs) | **244** (+27 emulator-gated) | — | `npx jest` |
+
+> Coverage fell from a 93% peak as the feature set grew — news, achievements,
+> battery policy, SMS and review scheduling each added modules. It remains well
+> clear of the 70% threshold, which is enforced in `package.json` so the suite
+> fails rather than drifting below it.
 | Alert latency (mean) | not measured | **0.06ms** | <500ms | `__tests__/performance`, 100 iterations |
 | Alert latency (p95) | not measured | **0.07ms** | <500ms | as above |
 | Battery drain (iOS) | not measured | _pending device test_ | ≤5%/hr | Xcode Instruments, Energy Impact |
@@ -377,6 +382,29 @@ the staleness. A restart reconnected it and the documents arrived immediately.
 The diagnostic lesson is that "listener alive, no error raised, zero results" is
 not proof that the collection is empty. Confirming the documents existed server
 side, via the Admin SDK, is what separated a data problem from a transport one.
+
+---
+
+### D14 — Adaptive monitoring under battery pressure
+Continuous location polling is the largest single contributor to the ≤5%/hour budget. Rather than choose one interval and hope it holds, the polling rate widens as the battery falls: 30s above half charge, 120s below it, 300s below a fifth, and back to 30s whenever charging.
+
+**Geofencing is deliberately exempt.** It is evaluated by the OS against hardware the device already runs, so it costs the app almost nothing. Zone alerting therefore keeps working at full fidelity in the most conservative mode, and only position history degrades. That asymmetry is what makes the tradeoff defensible in a disaster app — a power-saving mode that quietly stopped raising alerts would be worse than no power saving at all.
+
+An unreadable battery level — reported as `-1` by simulators and some Android devices — takes the **normal** profile rather than the cautious one. Failing toward less monitoring because a reading was unavailable is the wrong direction.
+
+### D15 — SMS fallback without a contact store
+Cellular SMS routinely survives when data networks are saturated or down, which is precisely the condition this app exists for. The fallback opens the **system composer** pre-filled with coordinates, a map link and the zones the user is currently inside.
+
+The app sends nothing itself and passes **no recipients**: the user chooses them in the composer. This means no contact list is stored, no contacts permission is requested, and no message leaves the device without an explicit action — a meaningful boundary for an app that already holds location history.
+
+### D16 — Disaster news, and a source that had to be dropped
+Two public feeds are used, both keyless: **USGS** for earthquakes and **GDACS** (EU/UN) for cyclones, floods, droughts, wildfires and volcanoes.
+
+**ReliefWeb was planned and then removed.** It was the obvious source for Pakistan-specific humanitarian reporting, and was initially described as free and keyless. Probing it before writing any code showed the v1 API decommissioned and v2 rejecting unregistered callers (`You are not using an approved appname`). Verifying an integration point before building on it cost minutes; discovering it after the feature was written would have cost the feature.
+
+Both remaining feeds carry coordinates, so each item is annotated with its distance using the existing Haversine. **Distance informs but does not reorder** — sorting by proximity would bury a magnitude 7 across the world beneath a magnitude 2.6 nearby. Ordering remains by recency.
+
+Mappers are covered by fixtures **copied from live responses** rather than invented, so an upstream contract change fails a test rather than silently emptying the list on device.
 
 ---
 
