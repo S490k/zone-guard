@@ -348,6 +348,38 @@ Verified on the simulator after the fix: all five tabs render, and the offline b
 
 ---
 
+## 4e. Dynamic zone verification (2026-09-24)
+
+Roadmap Step 3 required zones to be served from Firestore rather than hardcoded.
+That was implemented in Phase 2 but never verified with real data, because the
+`alerts` collection stayed empty.
+
+Seeded through an Admin SDK script rather than the console: security rules deny
+client writes to `alerts`, and hand-entering roughly thirty typed fields per run
+is both slow and error-prone when the expire and deactivate tests need repeating.
+
+| Check | Result |
+|---|---|
+| Alerts reach the app from Firestore | ✅ `[Zones] 4 active from Firestore` |
+| Geofences re-register on zone change | ✅ `[Geofencing] Re-registered 4 regions` |
+| Zone entry detected at a seeded location | ✅ inside Taunsa, 0.0km from centre |
+| Severity drives banner colour | ✅ `high` → URGENT in orange |
+| Bell badge counts containing zones | ✅ badge showed 1 |
+
+**A failure mode worth recording.** Before this ran, the app reported `0 active`
+for several minutes *while Firestore held four matching documents*. The listener
+had not errored — the custom error handler never fired — and the composite index
+was deployed. The cause was a run of WebChannel transport failures during a
+network interruption: `onSnapshot` kept serving an **empty local cache** and,
+because Firestore does not treat a cache-only read as an error, nothing surfaced
+the staleness. A restart reconnected it and the documents arrived immediately.
+
+The diagnostic lesson is that "listener alive, no error raised, zero results" is
+not proof that the collection is empty. Confirming the documents existed server
+side, via the Admin SDK, is what separated a data problem from a transport one.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
