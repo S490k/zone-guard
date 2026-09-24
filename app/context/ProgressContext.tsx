@@ -19,6 +19,8 @@ import {
 import { calculatePreparednessScore, ScoreBreakdown } from '@utils/preparednessScore';
 import { useAuth } from '@hooks/useAuth';
 import { publishScore } from '@utils/leaderboard';
+import { syncReviewReminder } from '@utils/reviewReminders';
+import { useLanguage } from '@context/LanguageContext';
 
 export interface ProgressContextValue {
   progress: StoredProgress;
@@ -44,6 +46,7 @@ const TARGET_ANSWER_SECONDS = 20;
 
 export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { t, locale } = useLanguage();
   const [progress, setProgress] = useState<StoredProgress>(EMPTY_PROGRESS);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -156,6 +159,17 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     () => calculatePreparednessScore(progress, TOTALS),
     [progress]
   );
+
+  // SM-2 computes a due date for every answered question; without this nothing
+  // ever acts on it. Locale is a dependency because the reminder text is baked
+  // in when scheduled, so switching language must rewrite the pending one.
+  useEffect(() => {
+    if (isLoading) return;
+    syncReviewReminder(progress.quizStates, (count) => ({
+      title: t('quiz.reminderTitle'),
+      body: count === 1 ? t('quiz.reminderBodyOne') : t('quiz.reminderBody', { count }),
+    }));
+  }, [progress.quizStates, isLoading, locale, t]);
 
   // Mirrored to the public leaderboard collection rather than read from the
   // user document, which is owner-only because it holds location history.
