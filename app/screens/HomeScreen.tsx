@@ -19,6 +19,11 @@ import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { StressIndicator } from '@components/StressIndicator';
 import { GeofenceMap } from '@components/GeofenceMap';
 import { DashboardHeader } from '@components/DashboardHeader';
+import {
+  EmergencyBanner,
+  SEVERITY_RANK,
+  SEVERITY_LABEL_KEY,
+} from '@components/EmergencyBanner';
 
 const SOURCE_KEY: Record<ZonesSource, string> = {
   firestore: 'home.sourceLive',
@@ -84,8 +89,16 @@ export const HomeScreen: React.FC = () => {
       backgroundColor: COLORS.surface,
       borderRadius: theme.borderRadius.md,
       padding: theme.spacing.md,
-      borderLeftWidth: 4,
+      borderLeftWidth: 5,
       borderLeftColor: COLORS.accent,
+      ...theme.shadows.sm,
+    },
+    zoneSeverity: {
+      fontSize: theme.fontSize.xs,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      marginBottom: 2,
+      ...rtlText(isRTL),
     },
     zoneTitle: {
       color: COLORS.textPrimary,
@@ -120,6 +133,11 @@ export const HomeScreen: React.FC = () => {
 
   const zonesContainingUser = rankedZones.filter((entry) => entry.proximity.isInZone);
 
+  // When zones overlap, the banner reports the most serious one.
+  const primaryAlert = [...zonesContainingUser].sort(
+    (a, b) => SEVERITY_RANK[b.zone.severity] - SEVERITY_RANK[a.zone.severity]
+  )[0];
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -127,6 +145,13 @@ export const HomeScreen: React.FC = () => {
         contentContainerStyle={styles.content}
       >
         <DashboardHeader activeAlertCount={zonesContainingUser.length} />
+
+        {primaryAlert && (
+          <EmergencyBanner
+            zone={primaryAlert.zone}
+            distanceKm={primaryAlert.proximity.distance}
+          />
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -211,6 +236,11 @@ export const HomeScreen: React.FC = () => {
                       : `${zone.name}, ${proximity.distance.toFixed(1)} kilometres away, ${zone.radiusKm} kilometre radius.`
                   }
                 >
+                  <Text
+                    style={[styles.zoneSeverity, { color: SEVERITY_COLORS[zone.severity] }]}
+                  >
+                    {t(SEVERITY_LABEL_KEY[zone.severity])}
+                  </Text>
                   <Text style={styles.zoneTitle}>{zone.name}</Text>
                   <Text style={styles.zoneDistance}>
                     {proximity.isInZone

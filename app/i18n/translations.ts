@@ -28,6 +28,8 @@ export const translations = {
       greetingEvening: 'Good evening',
       bellNoAlerts: 'Alerts. No zones active around you.',
       bellWithAlerts: 'Alerts. You are inside {{count}} disaster zones.',
+      bannerBody: 'You are inside this zone, {{distance}}km from its centre. Follow local guidance and prepare to move if instructed.',
+      bannerA11y: '{{severity}}. {{zone}}. You are inside this zone, {{distance}} kilometres from the centre.',
       scoreTitle: 'Preparedness Score',
       scoreBreakdown: 'Tasks {{tasks}} · Kit {{kit}} · Quiz {{quiz}}',
       locationTitle: 'Your Location',
@@ -108,6 +110,12 @@ export const translations = {
       yourScore: 'Your score is {{score}}. Keep going to reach the top ten.',
       rowLabel: 'Rank {{rank}}, {{handle}}, {{score}} points',
     },
+    severity: {
+      emergency: 'EMERGENCY',
+      urgent: 'URGENT',
+      important: 'IMPORTANT',
+      advisory: 'ADVISORY',
+    },
     common: {
       offline: 'Offline — using cached data',
       language: 'Language',
@@ -131,6 +139,8 @@ export const translations = {
       greetingEvening: 'شام بخیر',
       bellNoAlerts: 'الرٹس۔ آپ کے اردگرد کوئی فعال علاقہ نہیں۔',
       bellWithAlerts: 'الرٹس۔ آپ {{count}} آفت زدہ علاقوں میں ہیں۔',
+      bannerBody: 'آپ اس علاقے کے اندر ہیں، مرکز سے {{distance}} کلومیٹر۔ مقامی ہدایات پر عمل کریں اور ہدایت ملنے پر منتقل ہونے کے لیے تیار رہیں۔',
+      bannerA11y: '{{severity}}۔ {{zone}}۔ آپ اس علاقے کے اندر ہیں، مرکز سے {{distance}} کلومیٹر۔',
       scoreTitle: 'تیاری کا اسکور',
       scoreBreakdown: 'کام {{tasks}} · کٹ {{kit}} · کوئز {{quiz}}',
       locationTitle: 'آپ کا مقام',
@@ -210,6 +220,12 @@ export const translations = {
       you: 'آپ',
       yourScore: 'آپ کا اسکور {{score}} ہے۔ پہلے دس میں آنے کے لیے کوشش جاری رکھیں۔',
       rowLabel: 'درجہ {{rank}}، {{handle}}، {{score}} پوائنٹس',
+    },
+    severity: {
+      emergency: 'ہنگامی',
+      urgent: 'فوری',
+      important: 'اہم',
+      advisory: 'اطلاع',
     },
     common: {
       offline: 'آف لائن — محفوظ شدہ ڈیٹا استعمال ہو رہا ہے',
