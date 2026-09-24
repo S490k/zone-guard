@@ -298,6 +298,39 @@ real zone crossing.
 
 ---
 
+## 4d. iOS build verification (2026-09-24)
+
+**Artifact:** EAS cloud build, `preview` profile, simulator target. Queued and built
+**without any Apple Developer credentials being requested**, confirming that an
+unsigned simulator build needs no paid account.
+
+Verified by installing the downloaded artifact into a clean simulator and launching
+it — the built `.app`, not a development bundle served by Metro.
+
+| Check | Result |
+|---|---|
+| Artifact downloads and extracts | ✅ 20MB `ZoneGuard.app` |
+| Bundle identifier | ✅ `com.zoneguard.app` |
+| Version | ✅ 1.0.0 |
+| `UIBackgroundModes` | ✅ `location`, `fetch`, `remote-notification` |
+| `NSLocationWhenInUseUsageDescription` | ✅ present |
+| `NSLocationAlwaysAndWhenInUseUsageDescription` | ✅ present |
+| Installs into simulator | ✅ |
+| Launches and stays running | ✅ process alive after launch |
+| Renders dashboard, score, map | ✅ (screenshot captured) |
+
+The Info.plist checks matter more than they appear. Step 1.1 of the roadmap required
+those keys, and they have until now only been verified in `app.json` — the source
+config. Reading them out of the compiled bundle confirms Expo's config plugins
+actually applied them during a production build, which is the claim that was
+previously untested.
+
+The map renders here through **Apple Maps**, requiring no credentials. This is the
+same component and the same code path that aborted on Android for want of a Google
+Maps key, and is direct evidence for the platform divergence described in D12 and L6.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
