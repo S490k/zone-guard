@@ -267,6 +267,37 @@ Recorded as L6.
 
 ---
 
+## 4c. Android device verification (2026-09-24)
+
+**Environment:** Samsung Android handset, release APK built by EAS (`preview` profile, commit `8d5fc95`), installed directly rather than through a store.
+
+| Criterion | Result |
+|---|---|
+| APK installs and launches | ✅ |
+| Onboarding shown on first run | ✅ |
+| Survives the location permission grant | ✅ (regression fixed — see D12) |
+| Position displayed where the map would be | ✅ textual fallback (L6) |
+| All five tab labels legible, none truncated | ✅ |
+| Leaderboard loads | ✅ |
+| **Foreground service notification appears** | ✅ "Monitoring disaster zones in the background" |
+
+The foreground-service notification is the load-bearing result. Android requires a
+visible, persistent notification for any app holding a location foreground service,
+so the OS displaying it is the system's own confirmation that
+`startLocationUpdatesAsync` registered successfully with `FOREGROUND_SERVICE_LOCATION`
+and that background tracking is genuinely running — not merely reported as started by
+the app's own logging.
+
+This also confirms the EAS environment variables reached the cloud build: the
+leaderboard requires Firestore, and `.env.local` is gitignored and never uploaded.
+Had the variables not been registered, the app would have launched into local-only
+mode with an empty board.
+
+**Still outstanding on Android:** battery drain measurement, and alert delivery on a
+real zone crossing.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
