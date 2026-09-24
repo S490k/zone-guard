@@ -38,7 +38,7 @@ export const OfflineBanner: React.FC = () => {
     },
     text: {
       // Dark text on amber: the palette's light text would not meet contrast.
-      color: COLORS.background,
+      color: COLORS.textOnAccent,
       fontSize: theme.fontSize.sm,
       fontWeight: '600',
       textAlign: 'center',

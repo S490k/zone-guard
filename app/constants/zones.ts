@@ -55,8 +55,8 @@ export const ZONE_ALERT_CONFIG = {
 };
 
 export const SEVERITY_COLORS = {
-  low: '#4CAF50',
-  medium: '#FFC107',
-  high: '#FF9800',
-  critical: '#F44336',
+  low: '#15803D',
+  medium: '#A16207',
+  high: '#C2410C',
+  critical: '#B3261E',
 } as const;

@@ -74,7 +74,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       alignItems: 'center',
     },
     checkmark: {
-      color: COLORS.textPrimary,
+      color: COLORS.textOnAccent,
       fontSize: theme.fontSize.base,
       fontWeight: 'bold',
     },

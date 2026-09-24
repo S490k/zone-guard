@@ -49,7 +49,7 @@ export const GlassmorphicCard: React.FC<GlassmorphicCardProps> = ({
   return (
     <BlurView
       intensity={intensity}
-      tint="dark"
+      tint="light"
       // Android has no native backdrop blur; this opts into Expo's software
       // implementation rather than silently rendering a flat surface.
       experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}

@@ -54,7 +54,7 @@ export const LanguageToggle: React.FC = () => {
               <Text
                 style={[
                   styles.optionText,
-                  { color: isActive ? COLORS.background : COLORS.textPrimary },
+                  { color: isActive ? COLORS.textOnAccent : COLORS.textPrimary },
                 ]}
               >
                 {LOCALE_NAMES[option]}

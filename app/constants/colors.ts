@@ -1,48 +1,66 @@
+/**
+ * Light theme.
+ *
+ * Every pair below was measured against WCAG 2.1 AA rather than picked by eye.
+ * Body text clears 4.5:1 on both the canvas and white cards; white text on a
+ * solid severity surface clears 4.5:1 too, so severity cards are safe for
+ * normal-size text and not only for headings.
+ *
+ * Note on the source mockup: its orange (#F57C00) and yellow (#F9A825) measure
+ * 2.70:1 and 1.97:1 against white text — well under the threshold. The darker
+ * equivalents here keep the same visual hierarchy while remaining legible.
+ */
 export const COLORS = {
-  // Primary background (dark navy)
-  background: '#0A0E27',
-  backgroundAlt: '#0F1432',
+  // Canvas and surfaces
+  background: '#F5F6F8',
+  backgroundAlt: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceOpaque: '#FFFFFF',
+  surfaceLight: '#F9FAFB',
 
-  // Surface colors with glassmorphism
-  surface: 'rgba(15, 20, 50, 0.7)',
-  surfaceOpaque: '#0F1432',
-  surfaceLight: 'rgba(30, 40, 75, 0.8)',
+  // Text — 16.41:1, 6.99:1 and 4.60:1 on the canvas respectively
+  textPrimary: '#111827',
+  textSecondary: '#4B5563',
+  textTertiary: '#667085',
+  /** For text and icons sitting on a solid severity or accent surface. */
+  textOnAccent: '#FFFFFF',
 
-  // Text colors
-  textPrimary: '#FFFFFF',
-  textSecondary: '#A8B2D1',
-  // #6B7489 measured 4.06:1 against the background, below the WCAG AA 4.5:1
-  // floor for normal text. This lightened value measures 4.58:1.
-  textTertiary: '#737C97',
+  /**
+   * Severity, ordered by urgency. Doubles as card fills: white text on each
+   * clears 4.5:1 (critical 6.54, high 5.18, medium 4.92, low 5.02).
+   */
+  alertCritical: '#B3261E',
+  alertHigh: '#C2410C',
+  alertMedium: '#A16207',
+  alertLow: '#15803D',
 
-  // Alert severity colors
-  alertLow: '#4CAF50',
-  alertMedium: '#FFC107',
-  alertHigh: '#FF9800',
-  alertCritical: '#F44336',
+  /** Tinted backgrounds for severity rows, where the text stays dark. */
+  alertCriticalSoft: '#FEF2F2',
+  alertHighSoft: '#FFF7ED',
+  alertMediumSoft: '#FEFCE8',
+  alertLowSoft: '#F0FDF4',
 
-  // Semantic colors
-  success: '#4CAF50',
-  warning: '#FFC107',
-  error: '#F44336',
-  info: '#2196F3',
+  // Semantic
+  success: '#15803D',
+  warning: '#A16207',
+  error: '#B3261E',
+  info: '#1A56DB',
 
-  // Accent colors
-  accent: '#00D4FF',
-  accentSecondary: '#9C27B0',
+  // Accent
+  accent: '#1A56DB',
+  accentSecondary: '#7C3AED',
 
-  // Border colors
-  border: 'rgba(168, 178, 209, 0.2)',
-  borderLight: 'rgba(168, 178, 209, 0.1)',
+  // Lines and dividers
+  border: '#E5E7EB',
+  borderLight: '#F1F3F5',
 
-  // Special colors
-  disabled: 'rgba(168, 178, 209, 0.3)',
-  overlay: 'rgba(10, 14, 39, 0.8)',
+  disabled: '#9CA3AF',
+  overlay: 'rgba(17, 24, 39, 0.45)',
 
-  // Gradient stops (for preparedness meter)
-  gradientGood: '#4CAF50',
-  gradientWarning: '#FFC107',
-  gradientDanger: '#F44336',
+  // Preparedness meter stops
+  gradientGood: '#15803D',
+  gradientWarning: '#A16207',
+  gradientDanger: '#B3261E',
 };
 
 export default COLORS;

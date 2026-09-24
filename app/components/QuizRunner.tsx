@@ -93,7 +93,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ topic, questions, onClos
           minHeight: 44,
           justifyContent: 'center',
         },
-        buttonText: { color: COLORS.background, fontSize: theme.fontSize.md, fontWeight: '600' },
+        buttonText: { color: COLORS.textOnAccent, fontSize: theme.fontSize.md, fontWeight: '600' },
         secondaryButton: {
           borderColor: COLORS.border,
           borderWidth: 1,

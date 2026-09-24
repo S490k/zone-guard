@@ -29,7 +29,7 @@ export const ARScanButton: React.FC<ARScanButtonProps> = ({
       ...theme.shadows.md,
     },
     text: {
-      color: COLORS.background,
+      color: COLORS.textOnAccent,
       fontSize: theme.fontSize.md,
       fontWeight: '600',
     },

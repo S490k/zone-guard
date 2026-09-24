@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,9 +36,9 @@ const ONBOARDING_KEY = 'zoneguard:onboardingComplete';
 const Tab = createBottomTabNavigator();
 
 const navigationTheme = {
-  ...DarkTheme,
+  ...DefaultTheme,
   colors: {
-    ...DarkTheme.colors,
+    ...DefaultTheme.colors,
     primary: COLORS.accent,
     background: COLORS.background,
     card: COLORS.surfaceOpaque,
@@ -176,7 +176,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <LanguageProvider>
         <ZonesProvider>
           <ProgressProvider>

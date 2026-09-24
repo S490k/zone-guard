@@ -165,7 +165,7 @@ export const GeofenceMap: React.FC<GeofenceMapProps> = ({
           latitudeDelta: delta,
           longitudeDelta: delta,
         }}
-        userInterfaceStyle="dark"
+        userInterfaceStyle="light"
         showsUserLocation={Platform.OS === 'ios'}
         toolbarEnabled={false}
       >

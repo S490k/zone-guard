@@ -136,7 +136,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       justifyContent: 'center',
     },
     nextButtonText: {
-      color: COLORS.background,
+      color: COLORS.textOnAccent,
       fontSize: theme.fontSize.md,
       fontWeight: '600',
     },

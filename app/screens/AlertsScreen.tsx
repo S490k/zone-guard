@@ -116,7 +116,7 @@ export const AlertsScreen: React.FC = () => {
       justifyContent: 'center',
     },
     testButtonText: {
-      color: COLORS.background,
+      color: COLORS.textOnAccent,
       fontSize: theme.fontSize.md,
       fontWeight: '600',
       textAlign: 'center',
