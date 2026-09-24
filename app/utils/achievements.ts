@@ -118,3 +118,19 @@ export function evaluateBadges(
 export function earnedCount(badges: BadgeState[]): number {
   return badges.filter((badge) => badge.earned).length;
 }
+
+/**
+ * Badges earned since the last time they were announced.
+ *
+ * Pure, and separate from the announcing, because the tricky case is the first
+ * run after an install restores existing progress: every already-earned badge
+ * would look new and the user would be buried in toasts for things they did
+ * days ago. The caller seeds the announced set on first load to avoid that.
+ */
+export function pickNewlyEarned(
+  badges: BadgeState[],
+  announcedIds: readonly string[]
+): BadgeState[] {
+  const announced = new Set(announcedIds);
+  return badges.filter((badge) => badge.earned && !announced.has(badge.id));
+}

@@ -2,6 +2,7 @@ import {
   tierForScore,
   evaluateBadges,
   earnedCount,
+  pickNewlyEarned,
   BADGES,
   TIERS,
   AchievementTotals,
@@ -143,5 +144,46 @@ describe('evaluateBadges', () => {
   it('gives every badge a unique id', () => {
     const seen = new Set(BADGES.map((b) => b.id));
     expect(seen.size).toBe(BADGES.length);
+  });
+});
+
+describe('pickNewlyEarned', () => {
+  const oneTask: ProgressSnapshot = { ...empty, completedTaskIds: ['task-go-bag'] };
+
+  it('returns nothing when no badge is earned', () => {
+    expect(pickNewlyEarned(evaluateBadges(empty, TOTALS), [])).toEqual([]);
+  });
+
+  it('returns a badge earned since the last announcement', () => {
+    const fresh = pickNewlyEarned(evaluateBadges(oneTask, TOTALS), []);
+    expect(fresh.map((b) => b.id)).toContain('first-step');
+  });
+
+  // The subtle case: restoring existing progress on a new install must not
+  // replay every achievement the user earned days ago.
+  it('returns nothing when the badge was already announced', () => {
+    const fresh = pickNewlyEarned(evaluateBadges(oneTask, TOTALS), ['first-step']);
+    expect(fresh.map((b) => b.id)).not.toContain('first-step');
+  });
+
+  it('returns only the unannounced ones when several are earned', () => {
+    const complete: ProgressSnapshot = {
+      completedTaskIds: ids(5, 't'),
+      completedKitIds: ids(10, 'k'),
+      quizStates: withMastered(9).quizStates,
+    };
+
+    const fresh = pickNewlyEarned(evaluateBadges(complete, TOTALS), ['first-step', 'planner']);
+    const freshIds = fresh.map((b) => b.id);
+
+    expect(freshIds).not.toContain('first-step');
+    expect(freshIds).not.toContain('planner');
+    expect(freshIds).toContain('ready');
+    expect(fresh).toHaveLength(BADGES.length - 2);
+  });
+
+  it('never returns a badge that is not yet earned', () => {
+    const fresh = pickNewlyEarned(evaluateBadges(oneTask, TOTALS), []);
+    fresh.forEach((badge) => expect(badge.earned).toBe(true));
   });
 });

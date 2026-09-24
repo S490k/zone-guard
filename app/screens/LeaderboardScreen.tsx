@@ -10,24 +10,13 @@ import { useProgress } from '@context/ProgressContext';
 import { useAuth } from '@hooks/useAuth';
 import { fetchTopScores, LeaderboardEntry, LEADERBOARD_SIZE } from '@utils/leaderboard';
 import { BadgeGrid } from '@components/BadgeGrid';
-import { evaluateBadges, earnedCount, tierForScore } from '@utils/achievements';
-import {
-  PREPAREDNESS_TASKS,
-  EMERGENCY_KIT_ITEMS,
-  QUIZ_QUESTIONS,
-  QUIZ_TOPICS,
-} from '@constants/preparedness';
+import { earnedCount, tierForScore } from '@utils/achievements';
+import { useAchievements } from '@context/AchievementsContext';
 
 export const LeaderboardScreen: React.FC = () => {
   const { t, isRTL } = useLanguage();
-  const { score, progress } = useProgress();
-
-  const badges = evaluateBadges(progress, {
-    taskCount: PREPAREDNESS_TASKS.length,
-    kitCount: EMERGENCY_KIT_ITEMS.length,
-    questionCount: QUIZ_QUESTIONS.length,
-    topicCount: QUIZ_TOPICS.length,
-  });
+  const { score } = useProgress();
+  const { badges } = useAchievements();
   const { user } = useAuth();
 
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);

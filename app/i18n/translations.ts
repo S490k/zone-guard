@@ -118,6 +118,10 @@ export const translations = {
       badgeLocked: '{{title}}. Locked. {{description}}. {{percent}} percent complete.',
       badgeEarned: '{{title}}. Earned. {{description}}.',
     },
+    achievements: {
+      unlocked: 'ACHIEVEMENT UNLOCKED',
+      unlockedA11y: 'Achievement unlocked: {{title}}. Tap to dismiss.',
+    },
     severity: {
       emergency: 'EMERGENCY',
       urgent: 'URGENT',
@@ -236,6 +240,10 @@ export const translations = {
       badgesEarned: '{{total}} میں سے {{earned}} حاصل',
       badgeLocked: '{{title}}۔ ابھی حاصل نہیں۔ {{description}}۔ {{percent}} فیصد مکمل۔',
       badgeEarned: '{{title}}۔ حاصل کر لیا۔ {{description}}۔',
+    },
+    achievements: {
+      unlocked: 'کارنامہ مکمل',
+      unlockedA11y: 'کارنامہ مکمل: {{title}}۔ بند کرنے کے لیے دبائیں۔',
     },
     severity: {
       emergency: 'ہنگامی',

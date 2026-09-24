@@ -22,6 +22,8 @@ import { setupPushNotifications, setupNotificationListeners } from '@utils/fcmSe
 import { useAuth } from '@hooks/useAuth';
 import { ZonesProvider } from '@context/ZonesContext';
 import { ProgressProvider } from '@context/ProgressContext';
+import { AchievementsProvider } from '@context/AchievementsContext';
+import { AchievementToast } from '@components/AchievementToast';
 import { LanguageProvider, useLanguage } from '@context/LanguageContext';
 // Importing this file registers the background tasks with TaskManager (must happen at startup).
 import {
@@ -180,14 +182,17 @@ export default function App() {
       <LanguageProvider>
         <ZonesProvider>
           <ProgressProvider>
-            {hasSeenOnboarding ? (
-              <NavigationContainer theme={navigationTheme}>
-                <TabNavigator />
-                <OfflineBanner />
-              </NavigationContainer>
-            ) : (
-              <OnboardingScreen onComplete={completeOnboarding} />
-            )}
+            <AchievementsProvider>
+              {hasSeenOnboarding ? (
+                <NavigationContainer theme={navigationTheme}>
+                  <TabNavigator />
+                  <OfflineBanner />
+                  <AchievementToast />
+                </NavigationContainer>
+              ) : (
+                <OnboardingScreen onComplete={completeOnboarding} />
+              )}
+            </AchievementsProvider>
           </ProgressProvider>
         </ZonesProvider>
       </LanguageProvider>
