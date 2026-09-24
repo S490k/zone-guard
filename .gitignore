@@ -39,6 +39,9 @@ coverage/
 .nyc_output/
 
 # Firebase
+# Service account keys grant full admin access to the project - never commit.
+service-account.json
+**/service-account*.json
 .runtimeconfig.json
 functions/node_modules/
 functions/lib/
