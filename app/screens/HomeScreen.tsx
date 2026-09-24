@@ -18,6 +18,7 @@ import { SEVERITY_COLORS } from '@constants/zones';
 import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { StressIndicator } from '@components/StressIndicator';
 import { GeofenceMap } from '@components/GeofenceMap';
+import { DashboardHeader } from '@components/DashboardHeader';
 
 const SOURCE_KEY: Record<ZonesSource, string> = {
   firestore: 'home.sourceLive',
@@ -125,11 +126,7 @@ export const HomeScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{t('home.title')}</Text>
-          <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
-        </View>
+        <DashboardHeader activeAlertCount={zonesContainingUser.length} />
 
         {/* Error Alert */}
         {error && (

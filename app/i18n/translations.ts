@@ -22,7 +22,12 @@ export const translations = {
     },
     home: {
       title: 'Dashboard',
-      subtitle: 'Your disaster preparedness overview',
+      subtitle: 'Stay informed. Stay prepared.',
+      greetingMorning: 'Good morning',
+      greetingAfternoon: 'Good afternoon',
+      greetingEvening: 'Good evening',
+      bellNoAlerts: 'Alerts. No zones active around you.',
+      bellWithAlerts: 'Alerts. You are inside {{count}} disaster zones.',
       scoreTitle: 'Preparedness Score',
       scoreBreakdown: 'Tasks {{tasks}} · Kit {{kit}} · Quiz {{quiz}}',
       locationTitle: 'Your Location',
@@ -106,6 +111,7 @@ export const translations = {
     common: {
       offline: 'Offline — using cached data',
       language: 'Language',
+      switchTo: 'Switch language to {{language}}',
     },
     content: contentEn,
   },
@@ -119,7 +125,12 @@ export const translations = {
     },
     home: {
       title: 'ڈیش بورڈ',
-      subtitle: 'آپ کی آفات سے تیاری کا جائزہ',
+      subtitle: 'باخبر رہیں۔ تیار رہیں۔',
+      greetingMorning: 'صبح بخیر',
+      greetingAfternoon: 'دوپہر بخیر',
+      greetingEvening: 'شام بخیر',
+      bellNoAlerts: 'الرٹس۔ آپ کے اردگرد کوئی فعال علاقہ نہیں۔',
+      bellWithAlerts: 'الرٹس۔ آپ {{count}} آفت زدہ علاقوں میں ہیں۔',
       scoreTitle: 'تیاری کا اسکور',
       scoreBreakdown: 'کام {{tasks}} · کٹ {{kit}} · کوئز {{quiz}}',
       locationTitle: 'آپ کا مقام',
@@ -203,6 +214,7 @@ export const translations = {
     common: {
       offline: 'آف لائن — محفوظ شدہ ڈیٹا استعمال ہو رہا ہے',
       language: 'زبان',
+      switchTo: 'زبان {{language}} میں تبدیل کریں',
     },
     content: contentUr,
   },

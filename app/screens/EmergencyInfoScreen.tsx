@@ -12,7 +12,6 @@ import { GlassmorphicCard } from '@components/GlassmorphicCard';
 import { TaskCard } from '@components/TaskCard';
 import { useProgress } from '@context/ProgressContext';
 import { useLanguage } from '@context/LanguageContext';
-import { LanguageToggle } from '@components/LanguageToggle';
 import { EMERGENCY_KIT_ITEMS } from '@constants/preparedness';
 import { rtlText } from '../i18n/rtl';
 
@@ -125,13 +124,6 @@ export const EmergencyInfoScreen: React.FC = () => {
         <View style={styles.header}>
           <Text style={styles.title}>{t('emergency.title')}</Text>
           <Text style={styles.subtitle}>{t('emergency.subtitle')}</Text>
-        </View>
-
-        {/* Language */}
-        <View style={styles.section}>
-          <GlassmorphicCard>
-            <LanguageToggle />
-          </GlassmorphicCard>
         </View>
 
         {/* Household Emergency Kit Audit */}
