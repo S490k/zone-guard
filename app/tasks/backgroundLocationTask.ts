@@ -5,7 +5,7 @@ import { db } from '@config/firebase';
 import { detectActiveZones } from '@utils/distance';
 import { getCachedZones } from '@utils/zoneCache';
 import { getPersistedUid } from '@utils/session';
-import { presentZoneAlert } from '@utils/localAlerts';
+import { presentZoneAlert, dismissZoneAlert } from '@utils/localAlerts';
 import { ensureForegroundPermission, ensureBackgroundPermission } from '@utils/permissions';
 import { DisasterZone } from '@constants/zones';
 
@@ -132,6 +132,9 @@ TaskManager.defineTask(GEOFENCING_TASK_NAME, async ({ data, error }) => {
 
   if (eventType !== Location.GeofencingEventType.Enter) {
     console.log(`[Geofencing] Exited region ${region.identifier}`);
+    // The warning no longer applies, so it should not linger in Notification
+    // Centre where it would read as current.
+    if (region.identifier) await dismissZoneAlert(region.identifier);
     return;
   }
 

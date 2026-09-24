@@ -81,7 +81,11 @@ export function setupNotificationListeners(): () => void {
     console.log('Notification received:', n.request.content.title);
   });
   const response = Notifications.addNotificationResponseReceivedListener((r) => {
+    const { identifier } = r.notification.request;
     console.log('Notification tapped:', r.notification.request.content.data);
+    // iOS leaves a tapped notification in Notification Centre; an acknowledged
+    // warning should not keep sitting there looking current.
+    Notifications.dismissNotificationAsync(identifier).catch(() => {});
   });
   return () => {
     received.remove();

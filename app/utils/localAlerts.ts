@@ -36,6 +36,24 @@ async function recordAlertSent(zoneId: string): Promise<void> {
   }
 }
 
+/**
+ * One notification per zone. Reusing the id means a repeat alert *replaces*
+ * the previous one instead of stacking a second copy in Notification Centre,
+ * and it gives us a handle to dismiss with when the zone stops applying.
+ */
+function notificationId(zoneId: string, isTest: boolean): string {
+  return isTest ? `zoneguard:test:${zoneId}` : `zoneguard:zone:${zoneId}`;
+}
+
+/** Removes a delivered zone alert — used when the user leaves the zone. */
+export async function dismissZoneAlert(zoneId: string): Promise<void> {
+  try {
+    await Notifications.dismissNotificationAsync(notificationId(zoneId, false));
+  } catch (error) {
+    console.error('[LocalAlerts] Failed to dismiss alert:', error);
+  }
+}
+
 export interface ZoneAlertOptions {
   /** Prefixes the title so simulated alerts are never mistaken for real ones. */
   isTest?: boolean;
@@ -64,6 +82,7 @@ export async function presentZoneAlert(
 
   try {
     await Notifications.scheduleNotificationAsync({
+      identifier: notificationId(zone.id, isTest),
       content: {
         title,
         body: `${zone.description}${proximity}`,
