@@ -112,6 +112,11 @@ export const translations = {
       you: 'You',
       yourScore: 'Your score is {{score}}. Keep going to reach the top ten.',
       rowLabel: 'Rank {{rank}}, {{handle}}, {{score}} points',
+      tierLabel: 'Your tier is {{tier}}, with a score of {{score}}.',
+      badgesTitle: 'Achievements',
+      badgesEarned: '{{earned}} of {{total}} earned',
+      badgeLocked: '{{title}}. Locked. {{description}}. {{percent}} percent complete.',
+      badgeEarned: '{{title}}. Earned. {{description}}.',
     },
     severity: {
       emergency: 'EMERGENCY',
@@ -226,6 +231,11 @@ export const translations = {
       you: 'آپ',
       yourScore: 'آپ کا اسکور {{score}} ہے۔ پہلے دس میں آنے کے لیے کوشش جاری رکھیں۔',
       rowLabel: 'درجہ {{rank}}، {{handle}}، {{score}} پوائنٹس',
+      tierLabel: 'آپ کا درجہ {{tier}} ہے، اسکور {{score}}۔',
+      badgesTitle: 'کارنامے',
+      badgesEarned: '{{total}} میں سے {{earned}} حاصل',
+      badgeLocked: '{{title}}۔ ابھی حاصل نہیں۔ {{description}}۔ {{percent}} فیصد مکمل۔',
+      badgeEarned: '{{title}}۔ حاصل کر لیا۔ {{description}}۔',
     },
     severity: {
       emergency: 'ہنگامی',

@@ -9,6 +9,22 @@
  */
 
 export const contentEn = {
+  badges: {
+    'first-step': { title: 'First Step', description: 'Complete your first preparedness task' },
+    'planner': { title: 'Planner', description: 'Complete every preparedness task' },
+    'kit-started': { title: 'Kit Started', description: 'Gather half your emergency kit' },
+    'kit-complete': { title: 'Kit Complete', description: 'Gather every emergency kit item' },
+    'curious': { title: 'Curious', description: 'Answer your first quiz question' },
+    'scholar': { title: 'Scholar', description: 'Master every quiz question' },
+    'ready': { title: 'Ready', description: 'Complete the tasks, the kit and the quizzes' },
+  },
+  tiers: {
+    none: 'Getting Started',
+    bronze: 'Bronze',
+    silver: 'Silver',
+    gold: 'Gold',
+    platinum: 'Platinum',
+  },
   guides: {
     earthquake: {
       title: 'Earthquake Safety',
@@ -136,6 +152,22 @@ export const contentEn = {
 };
 
 export const contentUr = {
+  badges: {
+    'first-step': { title: 'پہلا قدم', description: 'تیاری کا پہلا کام مکمل کریں' },
+    'planner': { title: 'منصوبہ ساز', description: 'تیاری کے تمام کام مکمل کریں' },
+    'kit-started': { title: 'کٹ کا آغاز', description: 'ہنگامی کٹ کا نصف جمع کریں' },
+    'kit-complete': { title: 'کٹ مکمل', description: 'ہنگامی کٹ کی تمام اشیاء جمع کریں' },
+    'curious': { title: 'متجسس', description: 'اپنا پہلا سوال حل کریں' },
+    'scholar': { title: 'ماہر', description: 'تمام سوالات میں مہارت حاصل کریں' },
+    'ready': { title: 'تیار', description: 'کام، کٹ اور کوئز سب مکمل کریں' },
+  },
+  tiers: {
+    none: 'ابتدا',
+    bronze: 'کانسی',
+    silver: 'چاندی',
+    gold: 'سونا',
+    platinum: 'پلاٹینم',
+  },
   guides: {
     earthquake: {
       title: 'زلزلے سے حفاظت',

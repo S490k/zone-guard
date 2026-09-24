@@ -9,10 +9,25 @@ import { useLanguage } from '@context/LanguageContext';
 import { useProgress } from '@context/ProgressContext';
 import { useAuth } from '@hooks/useAuth';
 import { fetchTopScores, LeaderboardEntry, LEADERBOARD_SIZE } from '@utils/leaderboard';
+import { BadgeGrid } from '@components/BadgeGrid';
+import { evaluateBadges, earnedCount, tierForScore } from '@utils/achievements';
+import {
+  PREPAREDNESS_TASKS,
+  EMERGENCY_KIT_ITEMS,
+  QUIZ_QUESTIONS,
+  QUIZ_TOPICS,
+} from '@constants/preparedness';
 
 export const LeaderboardScreen: React.FC = () => {
   const { t, isRTL } = useLanguage();
-  const { score } = useProgress();
+  const { score, progress } = useProgress();
+
+  const badges = evaluateBadges(progress, {
+    taskCount: PREPAREDNESS_TASKS.length,
+    kitCount: EMERGENCY_KIT_ITEMS.length,
+    questionCount: QUIZ_QUESTIONS.length,
+    topicCount: QUIZ_TOPICS.length,
+  });
   const { user } = useAuth();
 
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -36,6 +51,7 @@ export const LeaderboardScreen: React.FC = () => {
   }, [load]);
 
   const userInTop = entries.some((entry) => entry.isCurrentUser);
+  const tier = tierForScore(score.total);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
@@ -49,6 +65,23 @@ export const LeaderboardScreen: React.FC = () => {
       ...rtlText(isRTL),
     },
     subtitle: { color: COLORS.textSecondary, fontSize: theme.fontSize.base, ...rtlText(isRTL) },
+    badgesSection: { marginBottom: theme.spacing.xl },
+    tierPill: {
+      alignSelf: isRTL ? 'flex-end' : 'flex-start',
+      borderWidth: 1.5,
+      borderRadius: theme.borderRadius.lg,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: 6,
+      marginTop: theme.spacing.md,
+    },
+    tierText: { fontSize: theme.fontSize.sm, fontWeight: '700' },
+    sectionTitle: {
+      color: COLORS.textPrimary,
+      fontSize: theme.fontSize.lg,
+      fontWeight: '600',
+      marginBottom: theme.spacing.xs,
+      ...rtlText(isRTL),
+    },
     row: {
       flexDirection: isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
@@ -104,6 +137,33 @@ export const LeaderboardScreen: React.FC = () => {
         <View style={styles.header}>
           <Text style={styles.title}>{t('leaderboard.title')}</Text>
           <Text style={styles.subtitle}>{t('leaderboard.subtitle')}</Text>
+
+          {/* Gives the bare score a name, which a number alone does not carry. */}
+          <View
+            style={[styles.tierPill, { borderColor: tier.colour }]}
+            accessible
+            accessibilityLabel={t('leaderboard.tierLabel', {
+              tier: t(`content.tiers.${tier.id}`),
+              score: score.total,
+            })}
+          >
+            <Text style={[styles.tierText, { color: tier.colour }]}>
+              {t(`content.tiers.${tier.id}`)} · {score.total}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.badgesSection}>
+          <Text style={styles.sectionTitle}>{t('leaderboard.badgesTitle')}</Text>
+          <Text style={styles.subtitle}>
+            {t('leaderboard.badgesEarned', {
+              earned: earnedCount(badges),
+              total: badges.length,
+            })}
+          </Text>
+          <GlassmorphicCard style={{ marginTop: theme.spacing.md }}>
+            <BadgeGrid badges={badges} />
+          </GlassmorphicCard>
         </View>
 
         <GlassmorphicCard>
