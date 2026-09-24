@@ -13,6 +13,7 @@ import { TaskCard } from '@components/TaskCard';
 import { useProgress } from '@context/ProgressContext';
 import { useLanguage } from '@context/LanguageContext';
 import { EMERGENCY_KIT_ITEMS } from '@constants/preparedness';
+import { EmergencySmsButton } from '@components/EmergencySmsButton';
 import { rtlText } from '../i18n/rtl';
 
 const GUIDE_IDS = ['earthquake', 'flood', 'heat', 'general'] as const;
@@ -124,6 +125,13 @@ export const EmergencyInfoScreen: React.FC = () => {
         <View style={styles.header}>
           <Text style={styles.title}>{t('emergency.title')}</Text>
           <Text style={styles.subtitle}>{t('emergency.subtitle')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('emergency.smsTitle')}</Text>
+          <GlassmorphicCard>
+            <EmergencySmsButton />
+          </GlassmorphicCard>
         </View>
 
         {/* Household Emergency Kit Audit */}

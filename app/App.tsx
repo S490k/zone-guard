@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import * as Battery from 'expo-battery';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -29,6 +30,8 @@ import { LanguageProvider, useLanguage } from '@context/LanguageContext';
 import {
   startBackgroundLocationTracking,
   stopBackgroundLocationTracking,
+  applyPowerProfile,
+  currentProfile,
 } from '@tasks/backgroundLocationTask';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -150,13 +153,28 @@ export default function App() {
     if (!user || !hasSeenOnboarding) return;
 
     setupPushNotifications().catch((e) => console.error(e));
+
+    let activeMode: string | null = null;
+
     startBackgroundLocationTracking().then((result) => {
       if (!result.locationUpdates) {
         console.warn('[ZoneGuard] Background monitoring unavailable — permissions denied');
+        return;
       }
+      activeMode = result.mode;
+    });
+
+    // Restarting the loop is not free, so it only happens when the battery
+    // crosses into a different profile — not on every one-percent change.
+    const batterySubscription = Battery.addBatteryLevelListener(async () => {
+      const profile = await currentProfile();
+      if (profile.mode === activeMode) return;
+      activeMode = profile.mode;
+      await applyPowerProfile(profile);
     });
 
     return () => {
+      batterySubscription.remove();
       stopBackgroundLocationTracking();
     };
   }, [user, hasSeenOnboarding]);

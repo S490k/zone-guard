@@ -64,6 +64,18 @@ jest.mock('expo-notifications', () => ({
 
 jest.mock('expo-device', () => ({ isDevice: true }));
 
+jest.mock('expo-battery', () => ({
+  BatteryState: { UNKNOWN: 0, UNPLUGGED: 1, CHARGING: 2, FULL: 3 },
+  getBatteryLevelAsync: jest.fn(async () => 1),
+  getBatteryStateAsync: jest.fn(async () => 1),
+  addBatteryLevelListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
+jest.mock('expo-sms', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  sendSMSAsync: jest.fn(async () => ({ result: 'sent' })),
+}));
+
 jest.mock('expo-constants', () => ({
   expoConfig: { extra: { eas: { projectId: 'test-project-id' } } },
 }));

@@ -7,6 +7,8 @@ import { getCachedZones } from '@utils/zoneCache';
 import { getPersistedUid } from '@utils/session';
 import { presentZoneAlert, dismissZoneAlert } from '@utils/localAlerts';
 import { ensureForegroundPermission, ensureBackgroundPermission } from '@utils/permissions';
+import * as Battery from 'expo-battery';
+import { profileForBattery, MonitoringProfile } from '@utils/batteryPolicy';
 import { DisasterZone } from '@constants/zones';
 
 export const BACKGROUND_LOCATION_TASK_NAME = 'background-location-task';
@@ -178,6 +180,24 @@ export interface TrackingStartResult {
   locationUpdates: boolean;
   geofencing: boolean;
   backgroundGranted: boolean;
+  /** Which power profile the polling loop started on. */
+  mode: MonitoringProfile['mode'];
+}
+
+/** Reads the battery and picks a polling profile, defaulting to normal. */
+export async function currentProfile(): Promise<MonitoringProfile> {
+  try {
+    const [level, state] = await Promise.all([
+      Battery.getBatteryLevelAsync(),
+      Battery.getBatteryStateAsync(),
+    ]);
+    const isCharging =
+      state === Battery.BatteryState.CHARGING || state === Battery.BatteryState.FULL;
+    return profileForBattery(level, isCharging);
+  } catch {
+    // A missing reading must not degrade a disaster app's monitoring.
+    return profileForBattery(-1, false);
+  }
 }
 
 /**
@@ -190,6 +210,7 @@ export async function startBackgroundLocationTracking(): Promise<TrackingStartRe
     locationUpdates: false,
     geofencing: false,
     backgroundGranted: false,
+    mode: 'normal',
   };
 
   try {
@@ -204,16 +225,19 @@ export async function startBackgroundLocationTracking(): Promise<TrackingStartRe
       return result;
     }
 
+    const profile = await currentProfile();
+    result.mode = profile.mode;
+
     const alreadyTracking = await Location.hasStartedLocationUpdatesAsync(
       BACKGROUND_LOCATION_TASK_NAME
     );
     if (!alreadyTracking) {
       await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK_NAME, {
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: profile.accuracy,
         showsBackgroundLocationIndicator: true,
         pausesUpdatesAutomatically: false,
-        timeInterval: 30000,
-        distanceInterval: 50,
+        timeInterval: profile.timeInterval,
+        distanceInterval: profile.distanceInterval,
         foregroundService: {
           notificationTitle: 'ZoneGuard active',
           notificationBody: 'Monitoring disaster zones in the background',
@@ -234,13 +258,48 @@ export async function startBackgroundLocationTracking(): Promise<TrackingStartRe
     }
 
     console.log(
-      `[BackgroundLocation] Tracking started (updates=${result.locationUpdates}, geofences=${zones.length})`
+      `[BackgroundLocation] Tracking started (updates=${result.locationUpdates}, ` +
+        `geofences=${zones.length}, power=${profile.mode})`
     );
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[BackgroundLocation] Start failed:', message);
     return result;
+  }
+}
+
+/**
+ * Restarts the polling loop on a new profile. Geofencing is left alone: it is
+ * OS-evaluated and costs the app almost nothing, so alerting keeps working at
+ * full fidelity while only position history degrades.
+ */
+export async function applyPowerProfile(profile: MonitoringProfile): Promise<boolean> {
+  try {
+    if (!(await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK_NAME))) {
+      return false;
+    }
+
+    await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK_NAME);
+    await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK_NAME, {
+      accuracy: profile.accuracy,
+      showsBackgroundLocationIndicator: true,
+      pausesUpdatesAutomatically: false,
+      timeInterval: profile.timeInterval,
+      distanceInterval: profile.distanceInterval,
+      foregroundService: {
+        notificationTitle: 'ZoneGuard active',
+        notificationBody: 'Monitoring disaster zones in the background',
+        notificationColor: '#1A56DB',
+      },
+    });
+
+    console.log(`[BackgroundLocation] Power profile switched to ${profile.mode}`);
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[BackgroundLocation] Failed to switch power profile:', message);
+    return false;
   }
 }
 
