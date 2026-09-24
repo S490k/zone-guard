@@ -15,6 +15,7 @@ import { useZones } from '@context/ZonesContext';
 import { useLanguage } from '@context/LanguageContext';
 import { presentZoneAlert } from '@utils/localAlerts';
 import { requestNotificationPermissions } from '@utils/fcmSetup';
+import { DisasterNewsFeed } from '@components/DisasterNewsFeed';
 
 export const AlertsScreen: React.FC = () => {
   const { zones, source, isLoading } = useZones();
@@ -243,6 +244,10 @@ export const AlertsScreen: React.FC = () => {
               </View>
             </GlassmorphicCard>
           )}
+        </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('alerts.newsTitle')}</Text>
+          <DisasterNewsFeed />
         </View>
       </ScrollView>
     </SafeAreaView>
