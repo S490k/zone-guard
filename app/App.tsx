@@ -68,14 +68,18 @@ function TabNavigator() {
         ),
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.textTertiary,
+        // Spread conditionally rather than passing undefined values. This style
+        // is applied *after* the navigator's computed layout, and React Native
+        // lets a later undefined override an earlier real value — so a bare
+        // `height: undefined` here erases the computed height and collapses the
+        // bar. iOS therefore takes no size overrides at all; its insets are
+        // already handled correctly.
         tabBarStyle: {
           backgroundColor: COLORS.surfaceOpaque,
           borderTopColor: COLORS.border,
-          // Android's gesture bar sits tighter under the tab bar than iOS's
-          // home indicator, so the row needs explicit room to avoid clipping.
-          height: Platform.OS === 'android' ? 68 : undefined,
-          paddingTop: 6,
-          paddingBottom: Platform.OS === 'android' ? 10 : undefined,
+          ...(Platform.OS === 'android'
+            ? { height: 68, paddingTop: 6, paddingBottom: 10 }
+            : {}),
         },
         // Five tabs leave roughly 72dp each on a narrow screen. At the default
         // size the longer labels ellipsise; fixed scaling keeps that true

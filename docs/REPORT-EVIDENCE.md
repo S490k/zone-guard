@@ -331,6 +331,23 @@ Maps key, and is direct evidence for the platform divergence described in D12 an
 
 ---
 
+### D13 — Tab bar collapse from an undefined style override
+The Android release showed truncated tab labels clipping against the gesture bar. The fix set an explicit height and padding for Android and left iOS on its defaults, expressed as `Platform.OS === 'android' ? 68 : undefined`.
+
+That broke iOS entirely: the tab bar disappeared.
+
+React Navigation composes the bar's style as `[computedLayout, tabBarStyle]`, with the caller's style **last**. React Native's flattening lets a later `undefined` *override* an earlier real value rather than defer to it, so `height: undefined` erased the computed height — roughly 83pt including the 34pt home-indicator inset — and `paddingBottom: undefined` erased the inset padding. The bar collapsed to auto height with nothing to size it. Android was unaffected only because its branch supplied a literal `68`.
+
+Resolved by spreading the overrides conditionally, so iOS receives no size keys at all and the navigator's own inset handling stands.
+
+**Two process failures worth recording**, since both are more instructive than the bug:
+1. A layout change driven by an Android screenshot was shipped without testing iOS, and rode into the same commit as the Android crash fix — so a verified fix carried an unverified one.
+2. The first response to the report was a guess (Simulator window taller than the display) rather than an inspection. The user's screenshot showed the full device bezel and disproved it immediately. The actual cause was found by reading the library's style composition, not by reasoning about symptoms.
+
+Verified on the simulator after the fix: all five tabs render, and the offline banner sits correctly above the bar — the first visual confirmation of the Step 4.11 indicator and of its clearance calculation.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
