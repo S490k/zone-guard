@@ -159,13 +159,17 @@ until it passes.
 Fill in and return. Blank or negative entries are fine — an untested or failed
 item is recorded as a limitation, not hidden.
 
+Completed on Android, 2026-09-25. Samsung handset, EAS release APK.
+
 | Test | Result | Notes |
 |---|---|---|
-| 1. Push token registered | ☐ pass ☐ fail ☐ skipped | |
-| 2. Foreground tracking | ☐ pass ☐ fail | |
-| 3. Blue indicator visible | ☐ pass ☐ fail | screenshot? |
-| 4. Survives force-quit | ☐ pass ☐ fail | |
-| 5. Battery drain | ______ %/hour | method used: |
-| 6. Zone entry + cooldown | ☐ pass ☐ fail | |
+| 1. Push token registered | not tested | `expoPushToken` absent; remote push unused — alerting is on-device (D1) |
+| 2. Foreground tracking | **pass** | positions written to Firestore while moving |
+| 3. Background service running | **pass** | Android foreground-service notification held for the full hour |
+| 4. Survives force-quit | **pass** | zone entry recorded 23s after crossing with the app killed; reproduced twice |
+| 5. Battery drain | **1%/hour** | 90% → 89% over 60 min, stationary, screen off. Best case — see the caveat in the evidence log |
+| 6. Zone entry notification | **pass, after a fix** | detected on the first attempt but delivered silently; alerts had no Android channel. Fixed in `f229b2f` and re-verified |
 
-Device: iPhone model ______, iOS version ______
+**iOS device testing not performed.** The available iPhone runs iOS 27 and the
+installed Xcode (26.6, iOS 26.5 SDK) cannot deploy to it. iOS was verified on
+simulator against a production build artifact instead. Recorded as L7.

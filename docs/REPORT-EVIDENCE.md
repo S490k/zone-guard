@@ -123,8 +123,8 @@ To be completed as phases close.
 > fails rather than drifting below it.
 | Alert latency (mean) | not measured | **0.06ms** | <500ms | `__tests__/performance`, 100 iterations |
 | Alert latency (p95) | not measured | **0.07ms** | <500ms | as above |
-| Battery drain (iOS) | not measured | _pending device test_ | ≤5%/hr | Xcode Instruments, Energy Impact |
-| Battery drain (Android) | not measured | _pending device test_ | ≤5%/hr | `adb bugreport` → Battery Historian |
+| Battery drain (Android) | not measured | **1%/hr** stationary | ≤5%/hr | 60-minute observation, 2026-09-25 |
+| Battery drain (iOS) | not measured | not measured | ≤5%/hr | Blocked: device on iOS 27, Xcode 26.6 cannot deploy (L7) |
 
 ### Coverage scope
 
@@ -408,6 +408,48 @@ Mappers are covered by fixtures **copied from live responses** rather than inven
 
 ---
 
+## 4f. Physical device measurements (2026-09-25)
+
+**Device:** Samsung Android handset. Release APK built by EAS, installed directly.
+
+### Battery drain — 1% per hour
+
+| | |
+|---|---|
+| Window | 07:41 – 08:41 local, 60 minutes |
+| Battery | 90% → 89% |
+| **Drain** | **1%/hour** against a ≤5%/hour target |
+
+Conditions: app opened and backgrounded, foreground-service notification visible throughout — Android's own confirmation that the location service held a wake commitment for the full hour. Screen off, device stationary.
+
+**Qualified as a best case, not an unconditional figure.** The device did not move, and the polling profile applies a 50-metre distance filter, so almost no position fixes were computed. The result demonstrates that a stationary device costs very little, which is the common case; it is not evidence of drain while travelling, which would be higher. It should be reported as *1%/hour stationary* rather than *1%/hour*.
+
+An earlier reading was nearly discarded as invalid, because Firestore showed no background location writes during the measurement window. That turned out to be the distance filter working exactly as designed — a stationary device produces no updates to write. The absence of writes was evidence of efficiency, not of a stopped service.
+
+### Geofencing survives process termination — pass
+
+The roadmap anticipated that terminating the app would end background location monitoring, and geofencing was chosen partly on the expectation that the OS would relaunch the app for a region crossing. That expectation is now tested rather than assumed.
+
+**Method:** the app was force-quit from the task switcher, then the tester walked back into a 500-metre zone centred on their own position.
+
+**Result:** `lastZoneEntry` was written to Firestore **23 seconds after the crossing**, with the app killed. That field is written by the geofencing task, so Android relaunched the terminated process to deliver the region event and the full detection chain ran.
+
+Reproduced twice, at 07:41:13Z and 11:17:05Z.
+
+This is evidence independent of the interface: the timestamps come from the background task writing to a server, not from anything displayed on screen.
+
+### A defect this testing exposed
+
+Both crossings were detected, recorded, and produced **no visible notification** — which initially read as a geofencing failure.
+
+Firestore disproved that. `lastZoneEntry` is written *after* `presentZoneAlert()` in the same function, so the alert had definitely been raised. The fault was narrower: alerts carried **no Android notification channel**, so the OS filed them under its default channel at DEFAULT importance — no heads-up banner, no sound. The warnings were being delivered silently into the notification shade, which for a disaster alert is indistinguishable from never arriving.
+
+A MAX-importance channel with sound, vibration and lockscreen visibility had been created at startup and never referenced. Alerts now carry it, and the channel is created at alert time rather than only during startup, because a geofence can wake a killed app directly into that path before any startup effect has run — precisely the cold-relaunch case where the alert matters most.
+
+**Verified fixed on device.** This defect was invisible on the simulator, where iOS shows local notifications without a channel concept, and would not have been found without testing on Android hardware.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
@@ -415,6 +457,8 @@ Each entry requires a technical justification, not a scheduling one.
 | # | Limitation | Technical cause |
 |---|---|---|
 | L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server pipeline validated in the emulator only. |
+| L7 | iOS physical-device testing not performed | The available iPhone runs iOS 27; the installed Xcode is 26.6 with the iOS 26.5 SDK, which cannot build to it. Distribution via TestFlight would require the paid Apple Developer Program (L8). iOS was verified on simulator against a production build artifact instead. |
+| L8 | No iOS distribution build | Apple gates every form of device distribution — TestFlight, ad-hoc, App Store — behind the paid Developer Program. A free Apple ID permits only a cable-installed 7-day build. Android distribution is unaffected and required no paid account. |
 | ~~L2~~ | ~~Switching to Urdu requires an app restart~~ | **Resolved.** Dropping `forceRTL` in favour of text-level direction removed both the restart requirement and the unwanted layout mirroring. |
 | L3 | Alert titles and descriptions are not translated | They originate in Firestore in whatever language the operator published. Only the app's own interface can be localised client-side. |
 | L6 | Map view is unavailable on Android | `react-native-maps` renders Google Maps on Android, which requires a billed Google Cloud API key. iOS uses Apple Maps and needs none. The Android build shows position and zone count as text instead; **zone monitoring and alerting are unaffected**, since the map only ever visualised them. Adding a key to `app.json` restores the map with no code change. |
