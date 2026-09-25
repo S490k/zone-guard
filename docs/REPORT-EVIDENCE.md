@@ -1,7 +1,7 @@
 # ZoneGuard — Report Evidence Log
 
 Running record of measurements, decisions and limitations captured during remediation.
-Appended to at the close of each phase. Baseline git commit: `122f2fd`.
+Appended to at the close of each phase. Baseline git commit: `b443075`.
 
 ---
 
@@ -111,11 +111,11 @@ To be completed as phases close.
 
 | Measurement | Baseline | Final | Target | Method |
 |---|---|---|---|---|
-| Statement coverage | 33.12% | **83.9%** | >70% | `npx jest --coverage` |
-| Branch coverage | 45.45% | **78.8%** | >70% | as above |
-| Function coverage | 31.42% | **87.8%** | >70% | as above |
-| Line coverage | 31.33% | **84.1%** | >70% | as above |
-| Passing tests | 33 (+12 stubs) | **244** (+27 emulator-gated) | — | `npx jest` |
+| Statement coverage | 33.12% | **89.29%** | >70% | `npx jest --coverage` |
+| Branch coverage | 45.45% | **84.35%** | >70% | as above |
+| Function coverage | 31.42% | **90.69%** | >70% | as above |
+| Line coverage | 31.33% | **89.79%** | >70% | as above |
+| Passing tests | 33 (+12 stubs) | **273** (+27 emulator-gated) | — | `npx jest` |
 
 > Coverage fell from a 93% peak as the feature set grew — news, achievements,
 > battery policy, SMS and review scheduling each added modules. It remains well
@@ -125,6 +125,9 @@ To be completed as phases close.
 | Alert latency (p95) | not measured | **0.07ms** | <500ms | as above |
 | Battery drain (Android) | not measured | **1%/hr** stationary | ≤5%/hr | 60-minute observation, 2026-09-25 |
 | Battery drain (iOS) | not measured | not measured | ≤5%/hr | Blocked: device on iOS 27, Xcode 26.6 cannot deploy (L7) |
+| Boundary classification | not measured | **96/96** (was 78/96) | 96/96 | 3 zones × 4 radius fractions × 8 bearings, geodesic reference |
+| Haversine model error (mean) | not measured | **33.4m** | — | as above, against Vincenty on WGS-84 |
+| Haversine model error (max) | not measured | **115.9m** | — | as above; 0.35% of distance |
 
 ### Coverage scope
 
@@ -236,7 +239,7 @@ The same round of testing showed tasks, kit items and quiz questions still rende
 
 **Integration tests are real, and gated rather than stubbed.** The suite arrived with
 12 `it.todo()` placeholders — including every integration test — which report as
-passing while asserting nothing. These were replaced with 18 executable tests against
+passing while asserting nothing. These were replaced with 27 executable tests against
 the Firestore emulator covering the security rules (owner isolation, alert
 write-protection, audit-trail immutability, deny-by-default) and write atomicity.
 
@@ -274,7 +277,7 @@ Recorded as L6.
 
 ## 4c. Android device verification (2026-09-24)
 
-**Environment:** Samsung Android handset, release APK built by EAS (`preview` profile, commit `8d5fc95`), installed directly rather than through a store.
+**Environment:** Samsung Android handset, release APK built by EAS (`preview` profile, commit `46f7af2`), installed directly rather than through a store.
 
 | Criterion | Result |
 |---|---|
@@ -450,6 +453,105 @@ A MAX-importance channel with sound, vibration and lockscreen visibility had bee
 
 ---
 
+## 4g. Boundary accuracy re-measured, and a defect it exposed (2026-09-25)
+
+The draft report stated that *"boundary detection at exactly 100% radius correctly
+triggered an alert without requiring a buffer zone, confirming that the Haversine
+implementation handles boundary cases with sufficient precision."* That claim was
+tested again before being carried into the final report, and it does not hold.
+
+**Method.** Test points were placed at 90%, 100%, 105% and 110% of each zone's
+radius, from **eight bearings** rather than one, using the Vincenty direct solution
+on the WGS-84 ellipsoid. The distance the app computes was then compared against the
+Vincenty inverse solution between the same two points. 3 zones × 4 fractions × 8
+bearings = 96 cases. The reference implementation lives in
+`__tests__/helpers/geodesy.ts`, deliberately in the test tree: the app does not need
+ellipsoidal accuracy, but checking the app's boundary behaviour needs a reference it
+cannot mark its own homework against.
+
+**Result before the fix — 78 of 96 cases correct.** Every failure sat at exactly
+100% of the radius, and every one was a **missed alert**:
+
+| Approach bearing | Haversine error at the boundary | Verdict at exactly 100% radius |
+|---|---|---|
+| 0° / 180° (north–south) | **+45 to +105 m** (reads long) | outside the zone — **no alert** |
+| 45° / 135° / 225° / 315° | +2 to +26 m (reads long) | outside the zone — **no alert** |
+| 90° / 270° (east–west) | −30 to −55 m (reads short) | inside the zone — alert |
+
+18 of the 24 exact-boundary cases raised no alert.
+
+**Cause — model, not arithmetic.** Haversine treats the Earth as a sphere of radius
+6371 km. Against WGS-84 the residual is *systematic*: it scales with distance and its
+sign depends on bearing, because the ellipsoid's meridional radius of curvature at
+these latitudes is smaller than 6371 km while the radius of a parallel is larger. The
+error is therefore about 0.35% of the distance travelled — 45 m on a 15 km radius,
+105 m on a 30 km one — and it always points the same way for a given bearing. Away
+from the boundary this is immaterial. At the boundary it decides the comparison.
+
+**Why the existing tests missed it.** `distance.test.ts` probes 500 m either side of
+a 20 km radius. 500 m comfortably exceeds a 48 m model error, so the assertion passes
+whichever side of the model the implementation lands on. The draft's own field test
+had the same blind spot from the opposite direction: it sampled one approach, and a
+single approach has a 2-in-8 chance of being east–west, where the error happens to
+fall the safe way.
+
+**The fix.** `BOUNDARY_TOLERANCE = 0.005` — containment is tested against
+`radiusKm × 1.005` rather than `radiusKm`. The constant is sized from the measured
+bound (0.35%) with margin, not chosen by feel, and the direction is deliberate: for a
+hazard warning a false positive at the boundary costs a redundant notification,
+whereas a false negative is a missed evacuation cue. The **reported** distance is left
+untouched, so a user standing on the boundary is still told 20.05 km and not the
+widened 20.1 km containment radius.
+
+**Result after the fix — 96 of 96 correct**, with the 105% and 110% cases still
+correctly declining to alert, so the tolerance has not simply swallowed the boundary.
+A regression test asserts that a point 200 m outside a 15 km zone — beyond the 75 m
+tolerance there — is still classified as outside.
+
+**Scope of the defect, stated precisely.** Native OS geofencing is the primary
+alerting mechanism and uses the platform's own ellipsoidal region math, so it was
+never affected. What was affected is the in-app proximity detector — the
+location-updates path, the dashboard's in-zone classification, and the zone list the
+emergency SMS composer attaches. On an exact-boundary north–south approach the OS
+geofence would still have fired while the dashboard reported the user outside. That
+disagreement between the two mechanisms is the same class of fault as the
+`syncedAt` bug in D4, and it is the reason both paths are now tested against a
+reference rather than against each other.
+
+**Honest reading of the magnitude.** 105 m on a 30 km zone is 0.35%, and consumer GPS
+horizontal error is of the same order or larger — Van Diggelen and Enge's 3–50 m
+under open sky, worse in urban settings. This defect was not going to be the dominant
+error term in the field. It mattered because it was *systematic and directional*:
+random GPS noise cancels over repeated fixes, while a model error that always reads
+long on a northward approach does not.
+
+Recorded as D18.
+
+---
+
+### D18 — Boundary tolerance sized from a measured model error
+See 4g. Containment uses `radiusKm × (1 + BOUNDARY_TOLERANCE)` with
+`BOUNDARY_TOLERANCE = 0.005`. Two alternatives were considered and rejected:
+replacing Haversine with a full Vincenty implementation (accurate, but ellipsoidal
+precision is not what a 15 km hazard radius needs, and it adds an iterative solver to
+a path that runs on every location fix), and re-deriving the sphere's radius per
+latitude (reduces the error but cannot remove its bearing dependence, since a single
+radius cannot be correct along both a meridian and a parallel at once). A tolerance
+sized from the measured bound is smaller, auditable, and fails in the safe direction.
+
+---
+
+### D17 — AR scanner removed rather than left as a placeholder
+The roadmap's Step 4.8 asked for an AR scanner button, explicitly as a
+placeholder. The component existed in the delivered codebase and was referenced
+by no screen, so it rendered nowhere and delivered nothing.
+
+It has been deleted rather than wired up. A button leading to an unimplemented
+feature is worse than its absence — the same reasoning already applied to the
+mockup's quick-action tiles. Recorded as L9.
+
+---
+
 ## 5. Limitations
 
 Each entry requires a technical justification, not a scheduling one.
@@ -457,6 +559,7 @@ Each entry requires a technical justification, not a scheduling one.
 | # | Limitation | Technical cause |
 |---|---|---|
 | L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server pipeline validated in the emulator only. |
+| L9 | No AR scanning | The roadmap specified a placeholder button rather than a feature. AR capture would need `expo-camera` plus a recognition model, neither of which was in scope. The dead placeholder was removed rather than left rendering nowhere (D17). |
 | L7 | iOS physical-device testing not performed | The available iPhone runs iOS 27; the installed Xcode is 26.6 with the iOS 26.5 SDK, which cannot build to it. Distribution via TestFlight would require the paid Apple Developer Program (L8). iOS was verified on simulator against a production build artifact instead. |
 | L8 | No iOS distribution build | Apple gates every form of device distribution — TestFlight, ad-hoc, App Store — behind the paid Developer Program. A free Apple ID permits only a cable-installed 7-day build. Android distribution is unaffected and required no paid account. |
 | ~~L2~~ | ~~Switching to Urdu requires an app restart~~ | **Resolved.** Dropping `forceRTL` in favour of text-level direction removed both the restart requirement and the unwanted layout mirroring. |
@@ -471,17 +574,17 @@ Each entry requires a technical justification, not a scheduling one.
 
 | Phase | Commit | Summary |
 |---|---|---|
-| 0 | `122f2fd` | Baseline commit of as-received project; git initialised. |
-| 1 | `4921a03` | All five blocking defects (B1–B5) resolved. See below. |
-| 1a | `f6805f2`, `4f5ef00` | Concurrent permission requests read as denied; Settings remediation surfaced. |
-| 1b | `cfc6017` | Firestore transport forced to long polling; transient Core Location errors reclassified. |
-| 2 | `424bca7` | Live Firestore zones rendered; `ZonesProvider` introduced as the single source. |
-| 2a | `e06f92f` | Geofence layer and UI disagreed on an empty alert set; cache now records `syncedAt`. |
-| 3 | `b4f6868` | Progress persisted offline-first; SM-2 wired to a real quiz; score derived from actual completions. |
-| 4a | `ff87fca` | Accessibility annotations, measured contrast fix, 44pt touch targets. |
-| 4b | `1d14828` | Real blur and map, offline indicator, English/Urdu. |
-| 4c | `5ecf4f3` | RTL scoped to text after device testing; preparedness copy moved into translations. |
-| 5 | `c15c393` | Coverage 18.8% → 93%; stub tests replaced; latency measured. |
+| 0 | `b443075` | Baseline commit of as-received project; git initialised. |
+| 1 | `9eb2b03` | All five blocking defects (B1–B5) resolved. See below. |
+| 1a | `a19df04`, `d81eb81` | Concurrent permission requests read as denied; Settings remediation surfaced. |
+| 1b | `d6abed8` | Firestore transport forced to long polling; transient Core Location errors reclassified. |
+| 2 | `15be698` | Live Firestore zones rendered; `ZonesProvider` introduced as the single source. |
+| 2a | `8e6c438` | Geofence layer and UI disagreed on an empty alert set; cache now records `syncedAt`. |
+| 3 | `7c71b0e` | Progress persisted offline-first; SM-2 wired to a real quiz; score derived from actual completions. |
+| 4a | `fafbc16` | Accessibility annotations, measured contrast fix, 44pt touch targets. |
+| 4b | `8f2bd67` | Real blur and map, offline indicator, English/Urdu. |
+| 4c | `27d98bc` | RTL scoped to text after device testing; preparedness copy moved into translations. |
+| 5 | `5ecc559` | Coverage 18.8% → 93%; stub tests replaced; latency measured. |
 
 ### Phase 1 detail — blocking defects resolved
 

@@ -22,6 +22,26 @@ export function haversineDistance(
   return R * c; // Distance in kilometers
 }
 
+// Haversine models the Earth as a sphere of radius 6371 km. Against WGS-84 the
+// residual is systematic rather than random: it scales with distance and its sign
+// depends on bearing, because the ellipsoid's radius of curvature is smaller along
+// a meridian than along a parallel. Measured against Vincenty over 96 boundary
+// cases at the three Pakistan zones, the worst case was 105 m on a 30 km radius —
+// about 0.35% of the distance, reported high on north–south approaches and low on
+// east–west ones.
+//
+// That matters only at the boundary itself, where it decides the comparison. An
+// exact-radius north–south approach was classified as outside the zone, so the
+// alert did not fire. For a hazard warning the model error must not fall on that
+// side, so the containment test carries a tolerance sized above the measured
+// bound. The reported distance is left untouched; only the in/out decision is
+// widened.
+//
+// Native OS geofencing — the primary alerting mechanism — uses the platform's own
+// ellipsoidal region math and is unaffected. This tolerance governs the in-app
+// proximity detector and the dashboard's zone classification.
+export const BOUNDARY_TOLERANCE = 0.005; // 0.5% of the zone radius
+
 // Interface for zone detection result
 export interface ZoneProximity {
   zoneId: string;
@@ -41,8 +61,9 @@ export function detectActiveZones(
   return zones
     .map((zone) => {
       const distance = haversineDistance(userLat, userLon, zone.latitude, zone.longitude);
-      const isInZone = distance <= zone.radiusKm;
-      const isNearZone = distance <= zone.radiusKm + alertThresholdKm && !isInZone;
+      const containmentRadius = zone.radiusKm * (1 + BOUNDARY_TOLERANCE);
+      const isInZone = distance <= containmentRadius;
+      const isNearZone = distance <= containmentRadius + alertThresholdKm && !isInZone;
 
       return {
         zoneId: zone.id,
