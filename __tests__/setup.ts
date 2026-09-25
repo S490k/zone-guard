@@ -49,6 +49,8 @@ jest.mock('expo-task-manager', () => ({
 
 jest.mock('expo-notifications', () => ({
   AndroidImportance: { MAX: 5, HIGH: 4, DEFAULT: 3 },
+  AndroidNotificationPriority: { MAX: 'max', HIGH: 'high', DEFAULT: 'default' },
+  AndroidNotificationVisibility: { PUBLIC: 1, PRIVATE: 0, SECRET: -1 },
   setNotificationHandler: jest.fn(),
   setNotificationChannelAsync: jest.fn(),
   getPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),

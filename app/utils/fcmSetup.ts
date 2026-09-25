@@ -64,12 +64,6 @@ export async function storePushTokenInFirestore(token: string): Promise<boolean>
 }
 
 export async function setupPushNotifications(): Promise<void> {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('zone-alerts', {
-      name: 'Zone alerts',
-      importance: Notifications.AndroidImportance.MAX,
-    });
-  }
   const granted = await requestNotificationPermissions();
   if (!granted) return;
   const token = await getExpoPushToken();

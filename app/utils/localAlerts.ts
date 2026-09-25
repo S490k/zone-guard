@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DisasterZone, ZONE_ALERT_CONFIG } from '@constants/zones';
 
@@ -33,6 +34,35 @@ async function recordAlertSent(zoneId: string): Promise<void> {
     await AsyncStorage.setItem(DEDUP_KEY, JSON.stringify(map));
   } catch (error) {
     console.error('[LocalAlerts] Failed to record alert:', error);
+  }
+}
+
+export const ZONE_CHANNEL_ID = 'zone-alerts';
+
+/**
+ * Creates the Android channel if it does not exist.
+ *
+ * Android assigns a notification with no channel to a default one of DEFAULT
+ * importance, which shows no heads-up banner and makes no sound — so a zone
+ * warning arrives silently in the shade. A disaster alert has to interrupt.
+ *
+ * Done here rather than only at startup because a geofence can wake a killed
+ * app straight into this code path, before any startup effect has run.
+ * setNotificationChannelAsync is idempotent, so calling it per alert is safe.
+ */
+async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    await Notifications.setNotificationChannelAsync(ZONE_CHANNEL_ID, {
+      name: 'Zone alerts',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'default',
+      vibrationPattern: [0, 250, 250, 250],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    });
+  } catch (error) {
+    console.error('[LocalAlerts] Failed to create channel:', error);
   }
 }
 
@@ -81,12 +111,22 @@ export async function presentZoneAlert(
       : '';
 
   try {
+    await ensureAndroidChannel();
+
     await Notifications.scheduleNotificationAsync({
       identifier: notificationId(zone.id, isTest),
       content: {
         title,
         body: `${zone.description}${proximity}`,
         sound: true,
+        // Without the channel the alert lands on Android's default one and
+        // never surfaces as a banner.
+        ...(Platform.OS === 'android'
+          ? {
+              channelId: ZONE_CHANNEL_ID,
+              priority: Notifications.AndroidNotificationPriority.MAX,
+            }
+          : {}),
         data: {
           zoneId: zone.id,
           severity: zone.severity,
