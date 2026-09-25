@@ -585,6 +585,7 @@ Each entry requires a technical justification, not a scheduling one.
 | 4b | `8f2bd67` | Real blur and map, offline indicator, English/Urdu. |
 | 4c | `27d98bc` | RTL scoped to text after device testing; preparedness copy moved into translations. |
 | 5 | `5ecc559` | Coverage 18.8% → 93%; stub tests replaced; latency measured. |
+| 7 | `08a25e3` | Boundary misclassification found by geodesic re-measurement and fixed (4g, D18); stale doc figures corrected. |
 
 ### Phase 1 detail — blocking defects resolved
 
