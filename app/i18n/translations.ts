@@ -39,6 +39,8 @@ export const translations = {
       zonesMonitored: '{{count}} zones monitored',
       noZones: 'No active zones. Alerts will appear here when one is published.',
       waitingLocation: 'Waiting for your location…',
+      powerReduced: 'Battery saving — position updates less often. Zone alerts are unaffected.',
+      powerMinimal: 'Low battery — position updates rarely. Zone alerts are unaffected.',
       mapUnavailable: 'Map view needs a Google Maps key on Android. Zone monitoring is unaffected.',
       mapUnavailableA11y: 'You are at {{latitude}}, {{longitude}}. {{count}} zones monitored. Map view unavailable.',
       awaitingFix: 'Waiting for location…',
@@ -105,7 +107,6 @@ export const translations = {
       smsUnavailable: 'This device cannot send text messages.',
       smsCancelled: 'Message not sent.',
       smsFailed: 'Could not open the messages app.',
-      powerReduced: 'Power saving — position updates less often. Zone alerts are unaffected.',
     },
     onboarding: {
       skip: 'Skip',
@@ -184,6 +185,8 @@ export const translations = {
       zonesMonitored: '{{count}} علاقے زیر نگرانی',
       noZones: 'کوئی فعال علاقہ نہیں۔ الرٹ جاری ہونے پر یہاں ظاہر ہوگا۔',
       waitingLocation: 'آپ کے مقام کا انتظار…',
+      powerReduced: 'بیٹری بچت — مقام کم وقفے سے اپ ڈیٹ ہوگا۔ زون الرٹس متاثر نہیں ہوں گے۔',
+      powerMinimal: 'بیٹری کم — مقام شاذ و نادر اپ ڈیٹ ہوگا۔ زون الرٹس متاثر نہیں ہوں گے۔',
       mapUnavailable: 'اینڈرائیڈ پر نقشے کے لیے گوگل میپس کی کلید درکار ہے۔ علاقوں کی نگرانی جاری ہے۔',
       mapUnavailableA11y: 'آپ {{latitude}}، {{longitude}} پر ہیں۔ {{count}} علاقے زیر نگرانی۔ نقشہ دستیاب نہیں۔',
       awaitingFix: 'مقام کا انتظار…',
@@ -250,7 +253,6 @@ export const translations = {
       smsUnavailable: 'یہ ڈیوائس پیغام نہیں بھیج سکتی۔',
       smsCancelled: 'پیغام نہیں بھیجا گیا۔',
       smsFailed: 'میسجز ایپ نہیں کھل سکی۔',
-      powerReduced: 'بیٹری بچت — مقام کم وقفے سے اپ ڈیٹ ہوگا۔ زون الرٹس متاثر نہیں ہوں گے۔',
     },
     onboarding: {
       skip: 'چھوڑیں',

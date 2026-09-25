@@ -10,6 +10,7 @@ import { COLORS } from '@constants/colors';
 import theme from '@theme/colors';
 import { rtlText } from '../i18n/rtl';
 import { useLocationMonitor } from '@hooks/useLocationMonitor';
+import { useMonitoringMode } from '@hooks/useMonitoringMode';
 import { useZones, ZonesSource } from '@context/ZonesContext';
 import { useProgress } from '@context/ProgressContext';
 import { useLanguage } from '@context/LanguageContext';
@@ -36,6 +37,7 @@ export const HomeScreen: React.FC = () => {
   const { location, activeZones, error } = useLocationMonitor(zones);
   const { score } = useProgress();
   const { t, isRTL } = useLanguage();
+  const powerMode = useMonitoringMode();
 
   const styles = StyleSheet.create({
     container: {
@@ -110,6 +112,12 @@ export const HomeScreen: React.FC = () => {
     zoneDistance: {
       color: COLORS.textSecondary,
       fontSize: theme.fontSize.sm,
+      ...rtlText(isRTL),
+    },
+    powerNote: {
+      color: COLORS.warning,
+      fontSize: theme.fontSize.xs,
+      marginTop: theme.spacing.xs,
       ...rtlText(isRTL),
     },
     errorText: {
@@ -210,6 +218,14 @@ export const HomeScreen: React.FC = () => {
               ? t('home.loadingZones')
               : `${t('home.zonesMonitored', { count: zones.length })} · ${t(SOURCE_KEY[source])}`}
           </Text>
+
+          {/* Throttling changes the app's own behaviour, so it is stated rather
+              than left for the user to infer from stale positions. */}
+          {powerMode !== 'normal' && (
+            <Text style={styles.powerNote} accessibilityLiveRegion="polite">
+              {powerMode === 'minimal' ? t('home.powerMinimal') : t('home.powerReduced')}
+            </Text>
+          )}
 
           {rankedZones.length === 0 ? (
             <GlassmorphicCard style={{ marginTop: theme.spacing.md }}>
