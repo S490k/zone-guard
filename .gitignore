@@ -45,3 +45,9 @@ service-account.json
 .runtimeconfig.json
 functions/node_modules/
 functions/lib/
+
+# Final report: kept out of version control entirely. Its sources and build
+# script live locally in docs/report/, and exported copies are never committed.
+docs/report/
+FINAL-REPORT.*
+ZoneGuard-Final-Report.*
