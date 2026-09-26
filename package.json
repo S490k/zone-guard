@@ -15,7 +15,7 @@
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
     "prebuild": "expo prebuild --clean",
-    "test:rules": "firebase emulators:exec --only firestore \"jest __tests__/integration\""
+    "test:rules": "npx --yes firebase-tools emulators:exec --only firestore --project demo-zoneguard \"jest --config jest.rules.config.js\""
   },
   "jest": {
     "preset": "jest-expo",
@@ -44,7 +44,11 @@
     },
     "moduleNameMapper": {
       ".*/postinstall\\.mjs$": "<rootDir>/node_modules/@firebase/util/dist/postinstall.js"
-    }
+    },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/__tests__/integration/"
+    ]
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

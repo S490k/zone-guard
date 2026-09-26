@@ -115,7 +115,9 @@ To be completed as phases close.
 | Branch coverage | 45.45% | **84.35%** | >70% | as above |
 | Function coverage | 31.42% | **90.69%** | >70% | as above |
 | Line coverage | 31.33% | **89.79%** | >70% | as above |
-| Passing tests | 33 (+12 stubs) | **273** (+27 emulator-gated) | — | `npx jest` |
+| Passing tests | 33 (+12 stubs) | **273** | — | `npx jest` |
+| Security-rule tests | 12 stubs, never run | **26/26 pass** against the emulator | all pass | `npm run test:rules`, 2026-09-26 |
+| Rule mutations detected | not measured | **3/3** | all detected | Deliberately weakened rules, each caught by the expected test (4h) |
 
 > Coverage fell from a 93% peak as the feature set grew — news, achievements,
 > battery policy, SMS and review scheduling each added modules. It remains well
@@ -239,12 +241,13 @@ The same round of testing showed tasks, kit items and quiz questions still rende
 
 **Integration tests are real, and gated rather than stubbed.** The suite arrived with
 12 `it.todo()` placeholders — including every integration test — which report as
-passing while asserting nothing. These were replaced with 27 executable tests against
+passing while asserting nothing. These were replaced with 26 executable tests against
 the Firestore emulator covering the security rules (owner isolation, alert
 write-protection, audit-trail immutability, deny-by-default) and write atomicity.
 
-They require a Java runtime, which is not installed on the development machine, so
-they **skip visibly** rather than passing vacuously. Run them with:
+When no emulator is running they **skip visibly** rather than passing vacuously. They
+were not executed until 2026-09-26 — see 4h, which also records why they could not
+have passed as originally configured. Run them with:
 
 ```bash
 npm run test:rules
@@ -538,6 +541,61 @@ a path that runs on every location fix), and re-deriving the sphere's radius per
 latitude (reduces the error but cannot remove its bearing dependence, since a single
 radius cannot be correct along both a meridian and a parallel at once). A tolerance
 sized from the measured bound is smaller, auditable, and fails in the safe direction.
+
+---
+
+## 4h. Security-rule tests executed for the first time (2026-09-26)
+
+The final report's first correction pass found that it described these tests as
+"executed against the Firestore emulator". They had never run. Establishing why
+turned up more than a missing dependency.
+
+**Three separate obstacles, the last of them fatal.**
+
+1. No Java runtime on the development machine. The Firestore emulator needs one;
+   current `firebase-tools` requires Java 21. Installed with
+   `brew install openjdk@21`.
+2. No Firebase CLI. `test:rules` invoked `firebase`, which was never installed
+   globally. The script now uses `npx --yes firebase-tools`, so it runs on a clean
+   checkout.
+3. **The tests could not pass under the main Jest configuration even with an
+   emulator running.** `__tests__/setup.ts` mocks `firebase/app` and
+   `firebase/firestore` for the unit suite — and those are precisely the modules
+   these tests use to reach the emulator. Separately, the jest-expo preset replaces
+   Node's `fetch`, which the rules-testing library uses to discover the emulator:
+   the first execution failed all 26 with `HTTP Error undefined when attempting to
+   reach Emulator Hub at undefined`. They now run under `jest.rules.config.js` —
+   plain Node, the genuine SDK, no unit-suite mocks — and the unit suite no longer
+   collects them.
+
+The project ID moved to `demo-zoneguard`. A `demo-` project is emulator-only by
+definition, so the CLI refuses to reach production for it; the previous ID
+resolved to the real project via `.firebaserc`.
+
+**One test was passing vacuously in waiting.** `denies deletion even by the owner`
+loaded `deleteDoc` through a dynamic `import()`, which throws inside Jest's VM
+without `--experimental-vm-modules`. The delete therefore never reached the
+emulator. `assertFails` rejected the resulting `TypeError` because it was not
+`PERMISSION_DENIED` — and that strictness is the only reason the gap surfaced. A
+looser "expect any rejection" assertion would have reported a pass without the rule
+ever being evaluated. `deleteDoc` is now imported statically.
+
+**Result: 26/26 pass.** Earlier documentation said 27: Jest listed a 27th skipped
+entry, which is the notice test pointing at `npm run test:rules`, not a rule test.
+
+**The tests were mutation-checked, because a suite that cannot fail proves nothing.**
+Three rules were weakened in turn and the suite re-run; the committed rules file was
+restored and confirmed byte-identical afterwards.
+
+| Mutation | Caught by | Result |
+|---|---|---|
+| Clients may write `alerts` | `denies a client writing an alert`, `denies modifying an existing alert` | 2 failed |
+| Owners may delete their user document | `denies deletion even by the owner` | 1 failed |
+| Any signed-in user may read any user document | `denies reading another user document` | 1 failed |
+
+The third mutation is the one the privacy requirement depends on: exposing every
+user's document — which holds location history — is caught immediately. R8 moves
+from met-by-design to measured.
 
 ---
 

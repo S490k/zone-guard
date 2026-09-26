@@ -6,7 +6,15 @@ import {
   assertFails,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  writeBatch,
+} from 'firebase/firestore';
 
 /**
  * Security-rule and atomicity tests against the Firestore emulator.
@@ -31,7 +39,10 @@ beforeAll(async () => {
   if (!emulatorRunning) return;
 
   testEnv = await initializeTestEnvironment({
-    projectId: 'zoneguard-rules-test',
+    // A `demo-` project is emulator-only by definition: the Firebase CLI refuses
+    // to reach production for it, so these tests can never touch real data.
+    // It must match the --project passed to `emulators:exec` in package.json.
+    projectId: 'demo-zoneguard',
     firestore: {
       rules: fs.readFileSync(path.resolve(__dirname, '../../firestore.rules'), 'utf8'),
     },
@@ -79,9 +90,10 @@ describeWithEmulator('users collection rules', () => {
 
   it('denies deletion even by the owner', async () => {
     const db = testEnv.authenticatedContext(OWNER).firestore();
-    await assertFails(
-      import('firebase/firestore').then(({ deleteDoc }) => deleteDoc(doc(db, 'users', OWNER)))
-    );
+    // Imported statically: a dynamic import() here threw inside Jest's VM before
+    // the delete reached the emulator. assertFails rejected that error because it
+    // was not PERMISSION_DENIED, which is the only reason the gap was caught.
+    await assertFails(deleteDoc(doc(db, 'users', OWNER)));
   });
 });
 

@@ -10,7 +10,7 @@ Setup, running, testing and building ZoneGuard.
 - **Xcode** with an iOS simulator (macOS only, for iOS)
 - **Android Studio** or a physical Android device
 - A **Firebase project** with Firestore enabled
-- **Java** — only for the Firestore rules tests
+- **Java 21** — only for the Firestore rules tests
 
 ---
 
@@ -113,7 +113,7 @@ full verification matrix.
 npm test                  # 273 tests
 npm test -- --coverage    # coverage report
 npm run typecheck         # tsc --noEmit
-npm run test:rules        # Firestore rules, needs Java
+npm run test:rules        # Firestore rules against the emulator, needs Java 21
 ```
 
 Coverage is enforced at **70%**; the suite fails rather than drifting below it.
@@ -121,9 +121,26 @@ It is scoped to `app/utils`, `app/hooks` and `app/i18n/rtl.ts` — translation d
 is excluded deliberately, since object literals register as covered on import and
 would inflate the figure without testing anything.
 
-`test:rules` starts the Firestore emulator, runs 27 rule and atomicity tests
-against the real `firestore.rules`, and shuts down. Without Java they skip
-**visibly** rather than passing vacuously.
+### Security-rule tests
+
+`test:rules` starts the Firestore emulator, runs 26 rule and atomicity tests
+against the real `firestore.rules`, and shuts down. It fetches the Firebase CLI
+through `npx`, so no global install is needed, and uses the emulator-only project
+`demo-zoneguard`, so it cannot reach production data.
+
+The emulator needs **Java 21**. On macOS:
+
+```bash
+brew install openjdk@21
+export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"   # add to ~/.zshrc to persist
+npm run test:rules
+```
+
+These tests run under their own configuration, `jest.rules.config.js`. The unit
+suite mocks `firebase/app` and `firebase/firestore`, and the jest-expo preset
+replaces Node's `fetch` — either would stop them reaching the emulator — so
+`npm test` does not collect them. With no emulator running they skip **visibly**
+rather than passing vacuously.
 
 ---
 
