@@ -168,7 +168,7 @@ Completed on Android, 2026-09-25. Samsung handset, EAS release APK.
 | 3. Background service running | **pass** | Android foreground-service notification held for the full hour |
 | 4. Survives force-quit | **pass** | zone entry recorded 23s after crossing with the app killed; reproduced twice |
 | 5. Battery drain | **1%/hour** | 90% → 89% over 60 min, stationary, screen off. Best case — see the caveat in the evidence log |
-| 6. Zone entry notification | **pass, after a fix** | detected on the first attempt but delivered silently; alerts had no Android channel. Fixed in `f229b2f` and re-verified |
+| 6. Zone entry notification | **pass, after a fix** | detected on the first attempt but delivered silently; alerts had no Android channel. Fixed in `ec309d4` and re-verified |
 
 **iOS device testing not performed.** The available iPhone runs iOS 27 and the
 installed Xcode (26.6, iOS 26.5 SDK) cannot deploy to it. iOS was verified on
