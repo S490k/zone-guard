@@ -154,6 +154,24 @@ until it passes.
 
 ---
 
+## Test 7 — No repeated alerts while staying inside
+
+The first field run produced a second alert three minutes after the first while
+the user was still inside the zone. The location task alerted on *presence*; it now
+alerts on *entry* (evidence log 4i). This test confirms the fix on hardware, and
+needs a release APK built from `db526db` or later.
+
+1. Start outside the test zone, then walk in. **Expected:** one notification.
+2. Keep walking around **inside** the zone for at least five minutes, staying more
+   than 100 m inside the boundary. **Expected:** no further notification.
+3. Walk out until you are more than 100 m beyond the boundary.
+   **Expected:** the notification is cleared from the shade.
+4. Walk back in. **Expected:** one new notification.
+
+**Records:** whether a stay produces exactly one alert on hardware.
+
+---
+
 ## Results
 
 Fill in and return. Blank or negative entries are fine — an untested or failed
@@ -169,6 +187,7 @@ Completed on Android, 2026-09-25. Samsung handset, EAS release APK.
 | 4. Survives force-quit | **pass** | zone entry recorded 23s after crossing with the app killed; reproduced twice |
 | 5. Battery drain | **1%/hour** | 90% → 89% over 60 min, stationary, screen off. Best case — see the caveat in the evidence log |
 | 6. Zone entry notification | **pass, after a fix** | detected on the first attempt but delivered silently; alerts had no Android channel. Fixed in `ec309d4` and re-verified |
+| 7. No repeat while inside | **pending** | repeat alert observed in the first run; fixed in `db526db` and covered by tests, not yet re-run on hardware |
 
 **iOS device testing not performed.** The available iPhone runs iOS 27 and the
 installed Xcode (26.6, iOS 26.5 SDK) cannot deploy to it. iOS was verified on

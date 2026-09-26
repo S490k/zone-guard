@@ -58,12 +58,12 @@ Found by static review, typechecking and test execution — no runtime debugging
 ## 3. Decisions
 
 ### D1 — Client-side alerting replaces the Cloud Function pipeline
-**Constraint:** Firebase project is on the Spark (free) plan. Cloud Functions have required a billing account since 2022 (Cloud Build + Artifact Registry); Cloud Scheduler is likewise unavailable. The roadmap's server-initiated push design cannot be deployed.
+**Constraint:** Firebase project is on the Spark (free) plan. Cloud Functions have required a billing account since mid-2020, when deploying new or updated functions began to require the Blaze plan; Cloud Scheduler is likewise unavailable. The roadmap's server-initiated push design cannot be deployed.
 
 **Resolution, three parts:**
 1. Zone entry fires a **local** notification from the background task via `Notifications.scheduleNotificationAsync()`. No server dependency; functions offline.
 2. **Native geofencing** (`Location.startGeofencingAsync`) replaces the 30-second continuous polling loop. The OS wakes the app on region crossing — materially better for the ≤5%/hr battery target.
-3. Cloud Function source is **retained and validated against the Firebase Emulator Suite** (free; already configured in `firebase.json` at ports 5001/8080/9099), giving pipeline evidence without a paid plan and remaining deploy-ready.
+3. Cloud Function source is **retained**, and the Emulator Suite is configured in `firebase.json` (ports 5001/8080/9099). *Correction, 2026-09-26:* this entry originally said the function was "validated against the Firebase Emulator Suite". It never was — no test exercises it, and until 4h the machine had no Java runtime to run the emulator. It compiles; it has never been executed.
 
 This also sidesteps B3 entirely, which would have failed even on a paid plan.
 
@@ -522,12 +522,17 @@ disagreement between the two mechanisms is the same class of fault as the
 `syncedAt` bug in D4, and it is the reason both paths are now tested against a
 reference rather than against each other.
 
-**Honest reading of the magnitude.** 105 m on a 30 km zone is 0.35%, and consumer GPS
-horizontal error is of the same order or larger — Van Diggelen and Enge's 3–50 m
-under open sky, worse in urban settings. This defect was not going to be the dominant
-error term in the field. It mattered because it was *systematic and directional*:
-random GPS noise cancels over repeated fixes, while a model error that always reads
-long on a northward approach does not.
+**Honest reading of the magnitude.** 105 m on a 30 km zone is only 0.35% of the
+radius, but it is large relative to positioning error. GPS-enabled smartphones are
+typically accurate to about 4.9 m under open sky (GPS.gov, citing van Diggelen and
+Enge, 2015), so in open terrain the model error exceeded the positional error by more
+than an order of magnitude and was the dominant term at the boundary. Near tall
+buildings, where smartphone accuracy degrades, the two become more comparable.
+*Correction, 2026-09-26:* this paragraph originally cited "3–50 m under open sky" and
+concluded the defect "was not going to be the dominant error term". Neither survived
+checking against the source. In either setting the error was *systematic and
+directional*: random GPS noise tends to average out over repeated fixes, while a model
+error that always reads long on a northward approach does not.
 
 Recorded as D18.
 
@@ -691,7 +696,7 @@ Each entry requires a technical justification, not a scheduling one.
 
 | # | Limitation | Technical cause |
 |---|---|---|
-| L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server pipeline validated in the emulator only. |
+| L1 | No server-initiated push; alerts are generated on-device | Firebase Spark plan cannot deploy Cloud Functions (see D1). Server function retained and compiles; never executed (see the D1 correction). |
 | L9 | No AR scanning | The roadmap specified a placeholder button rather than a feature. AR capture would need `expo-camera` plus a recognition model, neither of which was in scope. The dead placeholder was removed rather than left rendering nowhere (D17). |
 | L7 | iOS physical-device testing not performed | The available iPhone runs iOS 27; the installed Xcode is 26.6 with the iOS 26.5 SDK, which cannot build to it. Distribution via TestFlight would require the paid Apple Developer Program (L8). iOS was verified on simulator against a production build artifact instead. |
 | L8 | No iOS distribution build | Apple gates every form of device distribution — TestFlight, ad-hoc, App Store — behind the paid Developer Program. A free Apple ID permits only a cable-installed 7-day build. Android distribution is unaffected and required no paid account. |
@@ -719,6 +724,10 @@ Each entry requires a technical justification, not a scheduling one.
 | 4c | `27d98bc` | RTL scoped to text after device testing; preparedness copy moved into translations. |
 | 5 | `5ecc559` | Coverage 18.8% → 93%; stub tests replaced; latency measured. |
 | 7 | `c84b244` | Boundary misclassification found by geodesic re-measurement and fixed (4g, D18); stale doc figures corrected. |
+| 8 | `0ebcfbd` | Cited hashes remapped to commits reachable from origin after a history rewrite. |
+| 9 | `4ae1288` | Security-rule tests executed for the first time: 26/26 pass, mutation-checked (4h). |
+| 10 | `e1b9dbb` | `ARCHITECTURE.md` and the D17 component removal restored after being lost in a history rewrite. |
+| 11 | `db526db` | Alerts fire on zone entry rather than presence, with exit hysteresis (4i, D19). |
 
 ### Phase 1 detail — blocking defects resolved
 

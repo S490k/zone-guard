@@ -21,19 +21,22 @@ The obvious design is a server watching user positions and pushing alerts. That
 was the original plan, and it is not what this app does.
 
 **The constraint:** the Firebase project runs on the Spark (free) plan, and
-Cloud Functions have required a billing account since 2022. There is no server.
+Cloud Functions have required a billing account since 2020. There is no server.
 
 **The design:** the device evaluates its own position against cached zones and
 raises a local notification. Nothing is pushed. There is no round trip.
 
-This turned out to be better than a workaround. On-device alerting works with no
-connectivity at all, has no server latency, and cannot fail because a backend is
-down. Measured latency for the full path — cache read, zone detection,
-notification dispatch — is **0.06ms mean**, against a 500ms budget.
+This turned out to be better than a workaround. Once zones have synced to the
+device, alerting works with no connectivity, involves no network round trip, and
+does not depend on a backend being available. Local processing latency for the
+software path — cache read, zone detection, notification dispatch — is
+**0.06 ms mean** against a 500 ms budget. That figure comes from Node on a
+development machine, so it is an algorithmic bound rather than a device
+measurement.
 
 The server-side `checkZoneProximity` function is retained in `functions/` and
-validated against the Firestore emulator, so the pipeline is proven and
-deploy-ready if the plan ever changes.
+compiles, but it has never been executed — neither deployed nor run against an
+emulator — so it is a starting point for a server tier, not a proven one.
 
 **Deduplication** moves to the device with it. A 60-second per-zone cooldown in
 `AsyncStorage` replaces what the server's `alertLog` collection would have done: it
@@ -197,10 +200,13 @@ Feed mappers use fixtures **copied from live responses** rather than invented, s
 an upstream contract change fails a test instead of silently emptying a list on
 device.
 
-Security rules and write atomicity are tested against the Firestore emulator.
-Those 27 tests **skip visibly** when no emulator is present rather than passing
-vacuously — the suite arrived with twelve `it.todo()` placeholders that reported
-as passing while asserting nothing, and that failure mode is worth avoiding.
+Security rules and write atomicity are tested against the Firestore emulator:
+26 tests, all passing, run under their own Jest configuration because the unit
+suite mocks the Firebase SDK they depend on. They were mutation-checked —
+weakening a rule makes the matching test fail — because a suite that cannot fail
+proves nothing. With no emulator present they **skip visibly** rather than passing
+vacuously; the suite arrived with twelve `it.todo()` placeholders that reported as
+passing while asserting nothing, and that failure mode is worth avoiding.
 
 Two tests in this suite initially passed on the author's machine and would have
 failed elsewhere: one built fixtures in UTC against logic that normalises to a

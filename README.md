@@ -12,12 +12,13 @@ Built with React Native and Expo, targeting iOS and Android.
 
 **Warns you when you enter a disaster zone.** Native geofencing wakes the app on
 a boundary crossing — including after the app has been force-quit — and raises
-an on-device notification. Verified on hardware: a zone entry was recorded 23
+an on-device notification, once per entry rather than repeatedly while you stay
+inside. Verified on hardware: a zone entry was recorded 23
 seconds after the crossing with the app killed.
 
 **Works without a server, and without a network.** Alerts are generated on the
-device rather than pushed from a backend, so they still fire with no
-connectivity. Zones, progress and news are cached locally and the interface says
+device rather than pushed from a backend, so once zones have synced they still
+fire with no connectivity. Zones, progress and news are cached locally and the interface says
 plainly when it is showing cached data rather than live.
 
 **Helps you prepare.** A preparedness score across three weighted components —
@@ -81,7 +82,7 @@ configuration, alert seeding and running against the emulator.
 - **expo-location** — background location updates and native geofencing
 - **expo-notifications** — on-device alerting and review reminders
 - **React Navigation v7** — bottom tabs
-- **Jest** — 273 tests, coverage threshold enforced at 70%
+- **Jest** — 289 unit tests plus 26 security-rule tests, coverage threshold enforced at 70%
 - **EAS Build** — Android APK and iOS simulator artifacts
 
 ---
@@ -89,17 +90,20 @@ configuration, alert seeding and running against the emulator.
 ## Testing
 
 ```bash
-npm test              # 273 tests
+npm test              # 289 tests
 npm run typecheck     # tsc --noEmit
-npm run test:rules    # Firestore security rules (needs Java + emulator)
+npm run test:rules    # 26 Firestore security-rule tests (needs Java 21)
 ```
 
-Coverage sits at **89.3% statements** across the logic modules, with the
+Coverage sits at **90.2% statements** across the logic modules, with the
 threshold enforced in `package.json` so the suite fails rather than drifting.
 
-`test:rules` runs 27 tests against the Firestore emulator, covering owner
-isolation, alert write-protection and audit-trail immutability. They skip
-visibly when no emulator is running rather than passing vacuously.
+`test:rules` runs 26 tests against the Firestore emulator, covering owner
+isolation, alert write-protection, audit-trail immutability and write atomicity.
+All pass, and they were mutation-checked: deliberately weakening three rules made
+the expected tests fail. With no emulator running they skip visibly rather than
+passing vacuously. See [DEVELOPMENT.md](DEVELOPMENT.md#security-rule-tests) for the
+Java setup.
 
 ---
 
@@ -130,8 +134,8 @@ Each is documented with its technical cause in
 [docs/REPORT-EVIDENCE.md](docs/REPORT-EVIDENCE.md).
 
 - **No server-initiated push.** Cloud Functions require Firebase's paid plan, so
-  alerting is on-device. The Cloud Function source is retained and validated
-  against the emulator.
+  alerting is on-device. The Cloud Function source is retained and compiles,
+  but has never been executed.
 - **No map on Android** without a Google Maps API key; position and zone count
   are shown as text instead. Monitoring is unaffected.
 - **Alert content is not translated** — it arrives from Firestore in whatever

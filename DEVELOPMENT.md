@@ -110,7 +110,7 @@ full verification matrix.
 ## 4. Testing
 
 ```bash
-npm test                  # 273 tests
+npm test                  # 289 tests
 npm test -- --coverage    # coverage report
 npm run typecheck         # tsc --noEmit
 npm run test:rules        # Firestore rules against the emulator, needs Java 21
