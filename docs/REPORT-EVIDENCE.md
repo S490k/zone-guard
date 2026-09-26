@@ -116,7 +116,7 @@ To be completed as phases close.
 | Function coverage | 31.42% | **92.19%** | >70% | as above |
 | Line coverage | 31.33% | **90.89%** | >70% | as above |
 | Passing tests | 33 (+12 stubs) | **289** | — | `npx jest` |
-| Alerts per stay inside a zone | one per fix after cooldown (3 over 6 min in test) | **1** | 1 | `__tests__/tasks/backgroundLocationTask.test.ts` (4i) |
+| Alerts per stay inside a zone | one per fix after cooldown (3 over 6 min in test) | **1** (15-min field stay, 2026-09-26) | 1 | Task-level test, then Android field test (4i) |
 | Security-rule tests | 12 stubs, never run | **26/26 pass** against the emulator | all pass | `npm run test:rules`, 2026-09-26 |
 | Rule mutations detected | not measured | **3/3** | all detected | Deliberately weakened rules, each caught by the expected test (4h) |
 
@@ -661,11 +661,22 @@ over a stale recorded stay — were kept as tests so the fix could not regress t
 the transition rules and their persistence. The suite is 289 tests; coverage is
 90.23% statements, 85.09% branches.
 
-**Not yet re-verified on hardware.** This is unit- and task-level evidence against
-the real alert module with mocked platform APIs. Confirming it in the field needs a
-new release APK and a walk through a seeded zone: one alert on entry, none while
-walking inside, one again after leaving and returning. Until then the claim is
-"fixed and tested", not "verified on device". Recorded as D19.
+**Re-verified on hardware (2026-09-26, device protocol Test 7).** Samsung handset,
+release APK built by EAS from `db33c8b` (build `b079df64`), a 300 m test zone seeded
+508 m from the tester's starting point. Times are local (PKT).
+
+| Step | Observed | Evidence |
+|---|---|---|
+| Walk in | **One alert at 19:55**, at the zone edge (0.3 km from centre) | Notification shade screenshot. The body carries a distance, so the location-updates path raised it |
+| Stay inside, walking, 15 minutes | **No further alert.** At 20:10 the dashboard still showed the user inside, 0.2 km from centre | Tester confirmed nothing shown, sounded or vibrated; the status bar held only the monitoring notification |
+| Leave | Dashboard warning cleared once past the 300 m edge | Screenshot at 20:10, about 340 m from centre — inside the exit margin, so the stay was still open, as designed |
+| Walk back in | **One alert at 20:13** | Heads-up screenshot, and Firestore `lastZoneEntry` written by the geofence task at 15:13:10 UTC (20:13:10 PKT) |
+
+The old build alerted roughly once a minute during a moving stay; this one alerted
+once per visit. One path was **not observed**: the tester swiped the first alert away
+before leaving, so the automatic clearing on exit is verified in tests only. A
+late-arriving geofence Enter producing a second alert — a residual risk of keeping
+geofence entries unconditional — did not occur. Recorded as D19.
 
 ---
 

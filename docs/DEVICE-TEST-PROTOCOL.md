@@ -187,7 +187,7 @@ Completed on Android, 2026-09-25. Samsung handset, EAS release APK.
 | 4. Survives force-quit | **pass** | zone entry recorded 23s after crossing with the app killed; reproduced twice |
 | 5. Battery drain | **1%/hour** | 90% → 89% over 60 min, stationary, screen off. Best case — see the caveat in the evidence log |
 | 6. Zone entry notification | **pass, after a fix** | detected on the first attempt but delivered silently; alerts had no Android channel. Fixed in `ec309d4` and re-verified |
-| 7. No repeat while inside | **pending** | repeat alert observed in the first run; fixed in `368063d` and covered by tests, not yet re-run on hardware |
+| 7. No repeat while inside | **pass** | 2026-09-26, APK from `db33c8b`: one alert on entry (19:55), none during a 15-minute moving stay, one on re-entry (20:13, geofence entry confirmed in Firestore). Automatic clearing on exit not observed — the first alert was swiped away by hand |
 
 **iOS device testing not performed.** The available iPhone runs iOS 27 and the
 installed Xcode (26.6, iOS 26.5 SDK) cannot deploy to it. iOS was verified on
