@@ -2,10 +2,10 @@ import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@config/firebase';
-import { detectActiveZones } from '@utils/distance';
 import { getCachedZones } from '@utils/zoneCache';
 import { getPersistedUid } from '@utils/session';
 import { presentZoneAlert, dismissZoneAlert } from '@utils/localAlerts';
+import { handleLocationFix, markEntered, markExited } from '@utils/zoneTransitions';
 import { ensureForegroundPermission, ensureBackgroundPermission } from '@utils/permissions';
 import * as Battery from 'expo-battery';
 import { profileForBattery, MonitoringProfile } from '@utils/batteryPolicy';
@@ -58,7 +58,7 @@ async function writeUserDocWithRetry(
 
 // ---------------------------------------------------------------------------
 // Location updates: maintains the user's last known position and raises alerts
-// for any zone the position falls inside.
+// for any zone the position has newly entered.
 // ---------------------------------------------------------------------------
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK_NAME, async ({ data, error }) => {
   if (error) {
@@ -88,8 +88,11 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK_NAME, async ({ data, error }) =>
 
   try {
     const zones = await getCachedZones();
-    const proximities = detectActiveZones(latitude, longitude, zones);
-    const insideZones = proximities.filter((p) => p.isInZone);
+
+    // Alerting runs before the Firestore write: with no connectivity that write
+    // retries for up to a couple of seconds, and a warning must not wait on it.
+    // Only zones newly entered alert — see utils/zoneTransitions.ts.
+    const { proximities } = await handleLocationFix(latitude, longitude, zones);
 
     const uid = await getPersistedUid();
     if (uid) {
@@ -104,11 +107,6 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK_NAME, async ({ data, error }) =>
       });
     } else {
       console.log('[BackgroundLocation] No signed-in user; skipping Firestore sync');
-    }
-
-    for (const proximity of insideZones) {
-      const zone = zones.find((z) => z.id === proximity.zoneId);
-      if (zone) await presentZoneAlert(zone, { distanceKm: proximity.distance });
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -134,9 +132,13 @@ TaskManager.defineTask(GEOFENCING_TASK_NAME, async ({ data, error }) => {
 
   if (eventType !== Location.GeofencingEventType.Enter) {
     console.log(`[Geofencing] Exited region ${region.identifier}`);
-    // The warning no longer applies, so it should not linger in Notification
-    // Centre where it would read as current.
-    if (region.identifier) await dismissZoneAlert(region.identifier);
+    if (region.identifier) {
+      // The warning no longer applies, so it should not linger in Notification
+      // Centre where it would read as current. Ending the recorded stay lets a
+      // later re-entry alert again.
+      await dismissZoneAlert(region.identifier);
+      await markExited(region.identifier);
+    }
     return;
   }
 
@@ -150,7 +152,13 @@ TaskManager.defineTask(GEOFENCING_TASK_NAME, async ({ data, error }) => {
       return;
     }
 
+    // An OS-reported Enter is a real crossing, so it alerts unconditionally
+    // rather than consulting the recorded stay: that record could be stale if an
+    // exit was missed while the process was dead, and suppressing on it would
+    // fail in the unsafe direction. Recording the stay afterwards stops the
+    // location-updates task from repeating this alert.
     await presentZoneAlert(zone);
+    await markEntered(zone.id);
 
     const uid = await getPersistedUid();
     if (uid) {

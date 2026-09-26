@@ -111,11 +111,12 @@ To be completed as phases close.
 
 | Measurement | Baseline | Final | Target | Method |
 |---|---|---|---|---|
-| Statement coverage | 33.12% | **89.29%** | >70% | `npx jest --coverage` |
-| Branch coverage | 45.45% | **84.35%** | >70% | as above |
-| Function coverage | 31.42% | **90.69%** | >70% | as above |
-| Line coverage | 31.33% | **89.79%** | >70% | as above |
-| Passing tests | 33 (+12 stubs) | **273** | — | `npx jest` |
+| Statement coverage | 33.12% | **90.23%** | >70% | `npx jest --coverage` |
+| Branch coverage | 45.45% | **85.09%** | >70% | as above |
+| Function coverage | 31.42% | **92.19%** | >70% | as above |
+| Line coverage | 31.33% | **90.89%** | >70% | as above |
+| Passing tests | 33 (+12 stubs) | **289** | — | `npx jest` |
+| Alerts per stay inside a zone | one per fix after cooldown (3 over 6 min in test) | **1** | 1 | `__tests__/tasks/backgroundLocationTask.test.ts` (4i) |
 | Security-rule tests | 12 stubs, never run | **26/26 pass** against the emulator | all pass | `npm run test:rules`, 2026-09-26 |
 | Rule mutations detected | not measured | **3/3** | all detected | Deliberately weakened rules, each caught by the expected test (4h) |
 
@@ -596,6 +597,80 @@ restored and confirmed byte-identical afterwards.
 The third mutation is the one the privacy requirement depends on: exposing every
 user's document — which holds location history — is caught immediately. R8 moves
 from met-by-design to measured.
+
+---
+
+## 4i. Alerts fire on entry, not presence (2026-09-26)
+
+**How it was found.** During the report review, one of the Android field-test
+screenshots showed a second alert at 12:17, three minutes after the first, while the
+dashboard still showed the user inside the zone. Reading the code confirmed the
+cause: the location-updates task called `presentZoneAlert` for **every zone
+containing the current position on every fix**. The only brake was the 60-second
+cooldown, so a user who stayed inside a zone while moving was re-alerted roughly
+once a minute. This is the "false alert" category the tutor feedback asked to be
+recorded — an alert that is technically about a real hazard but repeats a warning
+already given.
+
+**Reproduced before fixing.** A task-level test drives the registered background
+callbacks directly, with fixes spaced minutes apart so the cooldown cannot mask the
+behaviour. Against the unchanged code it failed four ways:
+
+| Scenario | Expected | Before the fix |
+|---|---|---|
+| Three fixes over six minutes, all inside | 1 alert | **3 alerts** |
+| Inside → 50 m outside the radius → inside | 1 alert | **2 alerts** |
+| Geofence Enter, then a location fix inside | 1 alert | **2 alerts** |
+| Leaving the zone | alert dismissed | **left in Notification Centre** |
+
+The four scenarios that already behaved correctly — re-entry after a genuine exit,
+retry after a failed delivery, re-entry after a geofence Exit, and a geofence Enter
+over a stale recorded stay — were kept as tests so the fix could not regress them.
+
+**The design** (`app/utils/zoneTransitions.ts`):
+
+- **Transitions, not presence.** The set of occupied zones is persisted between
+  fixes, and only additions to it alert. It lives in `AsyncStorage` because each
+  background invocation runs in a fresh JavaScript context.
+- **Exit hysteresis of 100 m.** A stay ends only 100 m beyond the containment
+  radius. Fixes come from the Balanced accuracy profile, roughly 100 m on Android,
+  so without the margin a user standing on the boundary would read in and out
+  between fixes and be re-alerted on every flicker. Entry still uses the
+  containment radius, so the margin never delays a first alert.
+- **Geofence Enter stays authoritative.** An OS-reported Enter is a real crossing,
+  so it alerts unconditionally and then records the stay. Consulting the record
+  first would suppress a genuine re-entry whenever the record was stale — for
+  example after an exit event missed while the process was dead. That is the unsafe
+  direction, so it was rejected.
+- **Failed deliveries are retried.** A zone whose alert fails to deliver is left out
+  of the recorded set, so the next fix tries again instead of the entry being lost.
+  A zone already alerted within the cooldown — typically by the geofence task for
+  the same crossing — counts as delivered.
+- **Leaving dismisses.** A location-detected exit now clears the notification, as a
+  geofence Exit already did, so a stale warning does not read as current.
+- **Alerting before the network write.** The task previously wrote to Firestore
+  before alerting; offline, that write retries for up to about two seconds. Alerts
+  now go first.
+
+**Result.** All eight task-level scenarios pass, with eight further unit tests on
+the transition rules and their persistence. The suite is 289 tests; coverage is
+90.23% statements, 85.09% branches.
+
+**Not yet re-verified on hardware.** This is unit- and task-level evidence against
+the real alert module with mocked platform APIs. Confirming it in the field needs a
+new release APK and a walk through a seeded zone: one alert on entry, none while
+walking inside, one again after leaving and returning. Until then the claim is
+"fixed and tested", not "verified on device". Recorded as D19.
+
+---
+
+### D19 — Alerting on transition, with exit hysteresis
+See 4i. Two alternatives were rejected. Lengthening the cooldown would reduce
+repeats but also delay a genuine re-entry, and would still repeat during any stay
+longer than the cooldown. Making the geofence the only alert source would remove the
+repeats but lose the location path's role as a second detector, which is what caught
+entries the OS delivered late. A persisted occupancy record addresses the cause —
+alerting on presence — rather than rate-limiting its symptom.
 
 ---
 

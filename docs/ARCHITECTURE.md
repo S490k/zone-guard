@@ -36,7 +36,10 @@ validated against the Firestore emulator, so the pipeline is proven and
 deploy-ready if the plan ever changes.
 
 **Deduplication** moves to the device with it. A 60-second per-zone cooldown in
-`AsyncStorage` replaces what the server's `alertLog` collection would have done.
+`AsyncStorage` replaces what the server's `alertLog` collection would have done: it
+collapses the two location mechanisms' reports of the same crossing into one
+notification. Repeats *during* a stay are prevented separately, by recording which
+zones are occupied (below).
 
 ---
 
@@ -62,6 +65,20 @@ a terminated app for a crossing. Verified on Android: a zone entry was recorded
 **Location updates maintain position history** and feed the dashboard. This is
 the expensive one, and the only one that throttles under battery pressure.
 
+**Alerts fire on entry, not presence.** The location task sees the user inside a
+zone on every fix for as long as they stay, and originally alerted each time, held
+back only by the 60-second cooldown — so a user walking around inside a zone was
+re-alerted every minute or so. A persisted record of occupied zones
+(`utils/zoneTransitions.ts`) now means only a newly entered zone alerts. A stay ends
+100 m beyond the boundary rather than at it, because positions from the Balanced
+profile are accurate to roughly that, and a user standing on the edge would
+otherwise read in and out between fixes and be re-alerted on every flicker.
+
+A geofence Enter is an OS-observed crossing, so it **always** alerts and then
+records the stay. It deliberately does not consult the record first: the record
+could be stale if an exit event was missed while the process was dead, and
+suppressing on stale state would fail in the unsafe direction.
+
 The split is what makes the battery policy safe. In the most conservative mode,
 position history degrades to a 5-minute interval while **zone alerting keeps
 working at full fidelity**, because geofencing never throttles. A power-saving
@@ -84,6 +101,7 @@ on a cold start. Two mirrors exist to bridge this:
 |---|---|---|
 | **uid** | `utils/session.ts` | `auth.currentUser` is unreliable in a fresh context |
 | **zones** | `utils/zoneCache.ts` | The live Firestore listener is invisible to the task |
+| **occupied zones** | `utils/zoneTransitions.ts` | Each fix runs in a fresh context with no memory of which zones already alerted |
 
 Both are written whenever the foreground app learns something, and read by
 background code. The zone cache doubles as the offline source.
