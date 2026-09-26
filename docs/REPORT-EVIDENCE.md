@@ -724,10 +724,10 @@ Each entry requires a technical justification, not a scheduling one.
 | 4c | `27d98bc` | RTL scoped to text after device testing; preparedness copy moved into translations. |
 | 5 | `5ecc559` | Coverage 18.8% → 93%; stub tests replaced; latency measured. |
 | 7 | `c84b244` | Boundary misclassification found by geodesic re-measurement and fixed (4g, D18); stale doc figures corrected. |
-| 8 | `0ebcfbd` | Cited hashes remapped to commits reachable from origin after a history rewrite. |
-| 9 | `4ae1288` | Security-rule tests executed for the first time: 26/26 pass, mutation-checked (4h). |
-| 10 | `e1b9dbb` | `ARCHITECTURE.md` and the D17 component removal restored after being lost in a history rewrite. |
-| 11 | `db526db` | Alerts fire on zone entry rather than presence, with exit hysteresis (4i, D19). |
+| 8 | `a6ec44c` | Cited hashes remapped to commits reachable from origin after a history rewrite. |
+| 9 | `d050c02` | Security-rule tests executed for the first time: 26/26 pass, mutation-checked (4h). |
+| 10 | `2ae875d` | `ARCHITECTURE.md` and the D17 component removal restored after being lost in a history rewrite. |
+| 11 | `368063d` | Alerts fire on zone entry rather than presence, with exit hysteresis (4i, D19). |
 
 ### Phase 1 detail — blocking defects resolved
 
